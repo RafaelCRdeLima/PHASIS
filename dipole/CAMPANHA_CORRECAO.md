@@ -51,10 +51,35 @@ opostos e se cancelam parcialmente na grade original: as pontas de `z` inflam (e
 a grade uniforme em `r` corta o pico em r ~ 1/ε e deflaciona. Consertar só `r` **piora** o
 número. Isso dita a Fase 2: as duas mudanças entram juntas ou não entram.
 
-### Sentinela
+### Sentinela 1 — `F_L/F₂`
 
-`F_L/F₂` em x pequeno é o melhor indicador da campanha: um número só, barato, e discrimina as
-quatro combinações acima sem ambiguidade. Alvo físico: **0,05 ≤ F_L/F₂ ≤ 0,25** em x ≲ 1e-3.
+`F_L/F₂` em x pequeno: um número só, barato, e discrimina as quatro combinações acima sem
+ambiguidade. Alvo físico: **0,05 ≤ F_L/F₂ ≤ 0,25** em x ≲ 1e-3.
+
+### Sentinela 2 — condicionamento  *(medido durante a F0)*
+
+σ(E) é suave: σ ~ E^0.36, então uma perturbação dE/E deve dar dσ/σ ≈ 0,36·dE/E, ou seja
+amplificação ≈ 0,4. Medido na quadratura atual:
+
+```
+  E [GeV]      dE/E     dsigma/sigma   amplificacao
+  1.00e+06     1e-07    -3.613e-03      36 125
+  5.18e+07     1e-07    -2.265e-02     226 549
+  1.00e+09     1e-06    +2.328e-02      23 276
+  1.00e+11     1e-07    -1.489e-02     148 897
+                                  pior: 3.55e+05
+```
+
+**Uma mudança de 1 parte em 10⁷ na energia move σ em 2%.** A quadratura amplifica por 10²–10⁵
+onde a física dá 0,4. σ(E) não é uma função suave — é ±2% de ruído determinístico sobre a
+tendência, e é exatamente a origem dos 29 passos decrescentes da tabela publicada.
+
+Mecanismo: os nós de Simpson em ln Q² cobrem ln(1) até ln(0,999·2M_N·E), então mexer em E
+desloca **todos** os nós; como o pico do integrando em Q² ~ M_W² é resolvido por só ~2–5 nós, o
+resultado pula.
+
+Este é o melhor diagnóstico de saúde da quadratura da campanha: não precisa de valor de
+referência externo, só da suavidade que a física exige. `tests/test_conditioning.py`.
 
 ---
 
@@ -165,7 +190,11 @@ declarar a tabela válida só acima de E onde x_típ < x_match e recusar abaixo.
   detectar mudança não intencional.
 - `chmod +x` nos binários (perderam o bit na cópia).
 
-**Aceitação:** `make test-baseline` reproduz o baseline bit a bit.
+**Aceitação:** `python3 tests/test_oracle.py` passa (concordância oráculo↔C++).
+
+**CONCLUÍDA.** Commit baseline `edbc843`. Oráculo em `tests/oracle/dipole_oracle.py`, validado a
+2e-6 contra o binário em 8 energias de 1e3 a 1e14 GeV. Baselines GBW (com e sem F3) e IIM
+congelados em `tests/baseline/`. Descoberta colateral: o teste de condicionamento (§0, Sentinela 2).
 
 ---
 
@@ -225,8 +254,9 @@ rápido. Sem isso, F4 é inviável.
   mas a faixa de integração cresce (D4).
 - Corrigir `NE=1` (D16).
 
-**Aceitação:** σ(E) monotônica em toda a faixa 1e3–1e14 (a tabela atual tem 29 passos
-decrescentes), e inclinação log-log por década ≥ 0,25 acima de 1e7 GeV.
+**Aceitação:** `tests/test_conditioning.py` passa — amplificação ≤ 5 (hoje: 3,55e5). σ(E)
+monotônica em toda a faixa 1e3–1e14 (a tabela atual tem 29 passos decrescentes), e inclinação
+log-log por década ≥ 0,25 acima de 1e7 GeV.
 
 ---
 
@@ -292,7 +322,7 @@ Q2min, use-F3, PDF set, beam, versão do código, data.
 
 1. χ²/ponto ≲ 2 contra σ_red do HERA na janela de ajuste do GBW.
 2. 0,05 ≤ F_L/F₂ ≤ 0,25 em x ≲ 1e-3.
-3. σ(E) monotônica em 1e3–1e14 GeV.
+3. σ(E) monotônica em 1e3–1e14 GeV, com amplificação de condicionamento ≤ 5.
 4. Dobrar todas as grades muda σ em < 1%.
 5. σ dentro de fator 2 do pQCD em 1e5–1e12 GeV.
 6. Toda tabela reproduzível pelo próprio cabeçalho.

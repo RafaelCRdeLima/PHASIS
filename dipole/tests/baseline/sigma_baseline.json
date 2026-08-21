@@ -1,0 +1,106 @@
+{
+  "descricao": "Baseline do estado ANTES da campanha. Nao e o resultado correto - e o resultado a ser substituido. Serve para detectar mudanca nao intencional.",
+  "commit_baseline": "edbc843",
+  "gerado_por": "build/sigma_nuN --model {GBW,IIM} --logEmin 3 --logEmax 14 --NE 8 --use-F3 {0,1} --pdf-set CT10nlo --beam nu",
+  "grades_efetivas": {
+    "Nr": 50,
+    "Nz": 30,
+    "NlogQ": 16,
+    "Nlogx": 16,
+    "Q2min": 1.0,
+    "nota": "defaults de main(); o Makefile nao passa essas flags"
+  },
+  "unidades": "cm^2",
+  "GBW_comF3": {
+    "logE": [
+      3.0,
+      4.571428571428571,
+      6.142857142857142,
+      7.714285714285714,
+      9.285714285714285,
+      10.857142857142858,
+      12.428571428571429,
+      14.0
+    ],
+    "sigma_cm2": [
+      2.6022e-35,
+      6.0229e-33,
+      8.8355e-32,
+      3.10818e-31,
+      6.9071e-31,
+      1.19714e-30,
+      1.83074e-30,
+      2.50876e-30
+    ]
+  },
+  "GBW_semF3": {
+    "logE": [
+      3.0,
+      4.571428571428571,
+      6.142857142857142,
+      7.714285714285714,
+      9.285714285714285,
+      10.857142857142858,
+      12.428571428571429,
+      14.0
+    ],
+    "sigma_cm2": [
+      2.45174e-35,
+      6.00653e-33,
+      8.833e-32,
+      3.10788e-31,
+      6.90652e-31,
+      1.19696e-30,
+      1.83037e-30,
+      2.50805e-30
+    ]
+  },
+  "IIM_comF3": {
+    "logE": [
+      3.0,
+      4.571428571428571,
+      6.142857142857142,
+      7.714285714285714,
+      9.285714285714285,
+      10.857142857142858,
+      12.428571428571429,
+      14.0
+    ],
+    "sigma_cm2": [
+      9.45275e-38,
+      6.59642e-35,
+      6.59307e-33,
+      4.43163e-32,
+      1.21294e-31,
+      2.48288e-31,
+      4.69639e-31,
+      7.49584e-31
+    ]
+  },
+  "validacao_oraculo": {
+    "arquivo": "tests/oracle/dipole_oracle.py",
+    "comparado_com": "GBW_semF3",
+    "pior_desvio_relativo": 2e-06
+  },
+  "referencia_pQCD_Gandhi1998": {
+    "formula": "5.53e-36 * (E/GeV)^0.363 cm^2, valida 1e4-1e12 GeV",
+    "razao_tabela_sobre_referencia": {
+      "1e5": 44,
+      "1e6": 89,
+      "1e7": 100,
+      "1e9": 61,
+      "1e11": 23
+    }
+  },
+  "energias_logE": [
+    3.0,
+    4.571428571428571,
+    6.142857142857142,
+    7.714285714285714,
+    9.285714285714285,
+    10.857142857142858,
+    12.428571428571429,
+    14.0
+  ],
+  "nota_precisao": "Energias armazenadas como log10 exato, NAO como valor truncado. A quadratura atual amplifica dE/E por 1e2-1e5, entao truncar E em 7 digitos muda sigma em ate 2%. Ver tests/test_conditioning.py."
+}
