@@ -4,7 +4,9 @@
 
 CXX := g++
 
-CXXFLAGS := -O3 -std=c++17 -Wall -Wextra -Iinclude -I$(CONDA_PREFIX)/include $(shell lhapdf-config --cflags)
+# -MMD -MP gera .d com as dependencias de header. Sem isso, editar
+# include/*.hpp NAO dispara recompilacao -- e a campanha edita headers.
+CXXFLAGS := -O3 -std=c++17 -Wall -Wextra -MMD -MP -Iinclude -I$(CONDA_PREFIX)/include $(shell lhapdf-config --cflags)
 LDFLAGS  := -L$(CONDA_PREFIX)/lib $(shell lhapdf-config --libs)
 
 
@@ -79,6 +81,7 @@ TAU_PROFILE        := $(BUILD_DIR)/tau_profile
 COLLAPSAR_PROFILE  := $(BUILD_DIR)/generate_collapsar_profile
 SCAN_NEUTRINOSPHERE := $(BUILD_DIR)/scan_neutrinosphere
 BENCHMARK_PROFILES := $(BUILD_DIR)/generate_benchmark_profiles
+VALIDATE_HERA      := $(BUILD_DIR)/validate_hera
 
 
 # =====================================================
@@ -218,6 +221,33 @@ $(BUILD_DIR)/sigma_nuN.o: $(SRC_DIR)/sigma_nuN.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/weak_structure_functions.o: $(SRC_DIR)/weak_structure_functions.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# =====================================================
+# F1 - validacao do limite EM contra o F2 do HERA
+#
+# GBW e bCGC sao ajustes ao HERA. Se o limite EM nao reproduz
+# esse dado, nada a jusante vale. Ver CAMPANHA_CORRECAO.md.
+#
+#   make validate-hera                 # grade default
+#   make validate-hera NR=800 NZ=400   # teste de convergencia
+# =====================================================
+
+NR := 400
+NZ := 200
+HERA_FLAVORS := uds
+HERA_MQ := -1
+
+validate-hera: dirs $(VALIDATE_HERA)
+	LD_LIBRARY_PATH=$(CONDA_PREFIX)/lib:$$LD_LIBRARY_PATH $(VALIDATE_HERA) \
+		--Nr $(NR) --Nz $(NZ) \
+		--flavors $(HERA_FLAVORS) \
+		--mq $(HERA_MQ)
+
+$(VALIDATE_HERA): $(BUILD_DIR)/validate_hera.o $(BUILD_DIR)/wavefunctions.o $(BUILD_DIR)/dipole_models.o $(BUILD_DIR)/integrals.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(BUILD_DIR)/validate_hera.o: $(SRC_DIR)/validate_hera.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 plot-sigma-nuN: sigma-nuN
@@ -372,3 +402,9 @@ $(BENCHMARK_PROFILES): $(SRC_DIR)/generate_benchmark_profiles.cpp
 
 benchmark-profiles: dirs $(BENCHMARK_PROFILES)
 	$(BENCHMARK_PROFILES)
+
+# =====================================================
+# Dependencias de header geradas por -MMD -MP
+# =====================================================
+
+-include $(wildcard $(BUILD_DIR)/*.d)

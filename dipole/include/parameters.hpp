@@ -15,6 +15,10 @@ constexpr double MW = 80.379;         // GeV
 constexpr double MZ = 91.1876;        // GeV
 constexpr double sin2ThetaW = 0.23122;
 
+// Constante de estrutura fina, usada apenas no limite eletromagnetico
+// (validacao contra HERA). Ver makeEMParameters.
+constexpr double alphaEM = 1.0/137.035999084;
+
 // Massas efetivas dos quarks em GeV
 struct QuarkMasses {
     double u = 0.03;
@@ -27,7 +31,8 @@ struct QuarkMasses {
 
 enum class CurrentType {
     CC,
-    NC
+    NC,
+    EM   // fóton: usado só para validar o codigo contra F2 do HERA
 };
 
 enum class QuarkFlavor {
@@ -77,7 +82,25 @@ inline double massOf(QuarkFlavor f, const QuarkMasses& masses = QuarkMasses{}) {
     throw std::runtime_error("Sabor de quark inválido.");
 }
 
+// Carga eletrica em unidades de e.
+inline double electricCharge(QuarkFlavor f) {
+    switch (f) {
+        case QuarkFlavor::u:
+        case QuarkFlavor::c:
+        case QuarkFlavor::t: return  2.0/3.0;
+        case QuarkFlavor::d:
+        case QuarkFlavor::s:
+        case QuarkFlavor::b: return -1.0/3.0;
+    }
+    throw std::runtime_error("Sabor de quark inválido em electricCharge.");
+}
+
 inline ElectroweakCouplings makeCouplings(CurrentType current, QuarkFlavor flavor) {
+    if (current == CurrentType::EM) {
+        // gV = e_f, gA = 0  =>  (gV^2 + gA^2) = e_f^2, que e o peso padrao de F2^em.
+        return { electricCharge(flavor), 0.0, alphaEM };
+    }
+
     if (current == CurrentType::CC) {
         return {
             -1.0,
@@ -124,6 +147,30 @@ inline Parameters makeNCParameters(
     p.mu = p.m;
 
     auto c = makeCouplings(CurrentType::NC, flavor);
+    p.gV = c.gV;
+    p.gA = c.gA;
+    p.alphaEW = c.alphaEW;
+
+    return p;
+}
+
+// Limite eletromagnetico: gamma* -> q qbar, dipolo de UM sabor.
+//
+// Serve para validar toda a maquinaria (funcoes de onda, quadratura, sigma_dip)
+// contra o F2 do HERA -- que e exatamente o dado a que GBW e bCGC foram
+// ajustados. Se este limite nao reproduz o HERA, nada a jusante vale.
+inline Parameters makeEMParameters(
+    QuarkFlavor flavor,
+    const QuarkMasses& masses = QuarkMasses{}
+) {
+    Parameters p;
+    p.current = CurrentType::EM;
+    p.flavor = flavor;
+
+    p.m = massOf(flavor, masses);
+    p.mu = p.m;                       // dipolo q qbar de mesmo sabor
+
+    auto c = makeCouplings(CurrentType::EM, flavor);
     p.gV = c.gV;
     p.gA = c.gA;
     p.alphaEW = c.alphaEW;

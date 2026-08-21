@@ -213,6 +213,36 @@ reproduzir σ_red medida.
 **Aceitação (antes da F2):** o teste roda e **falha** com χ²/ponto ≫ 1 — documentando o estado.
 **Aceitação (depois da F2):** χ²/ponto ≲ 2 na janela de ajuste do GBW.
 
+**CONCLUÍDA (antes da F2).** `src/validate_hera.cpp`, `make validate-hera`,
+`plots/plot_hera_validation.py`. 239 pontos do HERA em x < 1e-2, 0,25 ≤ Q² ≤ 50 GeV².
+
+| config | χ²/ponto | ⟨mod/dado⟩ | F_L/F₂ |
+|--------|----------|------------|--------|
+| **Nr=50, Nz=30, m=0,03** — grade que gerou as tabelas | **2131** | 1,349 | 0,0026–0,238 |
+| Nr=400, Nz=200, m=0,03 | 21,1 | 1,014 | 0,097–0,223 |
+| Nr=800, Nz=400, m=0,03 | 38,4 | 0,980 | 0,116–0,223 |
+| Nr=400, Nz=200, m=0,14 | 73,4 | 0,905 | 0,134–0,214 |
+| Nr=800, Nz=400, m=0,14 | 89,8 | 0,897 | 0,141–0,214 |
+
+Três leituras:
+
+1. **O teste funciona.** Na grade real das tabelas, χ² = 2131 e F_L/F₂ desce a 0,0026. Refinando
+   para 400/200, χ² cai 100× e F_L/F₂ entra na faixa física. As duas sentinelas concordam.
+2. **A falha é dependente de Q², crescente.** Em `plots/hera_validation.png`: até Q² = 2 GeV² as
+   três grades batem com o dado; em Q² = 45 GeV² a grade grossa dá σ_red = 3,5 contra 1,45 medido
+   (fator 2,4). Como r_pico ~ 1/ε encolhe com Q², em Q² = M_W² (140× maior) isso vira o fator ~56
+   medido em §0. **Corolário:** um teste só em Q² ≤ 50 GeV² com grade fina não pegaria o bug —
+   é a combinação grade grossa + alcance em Q² que expõe.
+3. **Ainda não convergido, e refinar piora.** 400/200 → 21, mas 800/400 → 38. Uniforme em r com
+   uniforme em z é mal-condicionado: os dois erros se cancelam parcialmente e refinar quebra o
+   cancelamento. Confirma §0.
+4. **⟨mod/dado⟩ ≈ 1 com χ² enorme** em todos os casos: a discrepância é de **forma**, não de
+   normalização.
+
+**Não é possível julgar parâmetro físico ainda.** m=0,14 (o valor do artigo GBW) dá χ² *pior*
+que m=0,03 — mas com a quadratura não convergida isso não significa nada. É exatamente o
+Princípio 1. A decisão Q3 fica para depois da F2.
+
 ---
 
 ### F2 — Quadratura em (r, z)  *(o coração da campanha)*
