@@ -1,0 +1,13 @@
+build/*.o
+build/dipole
+build/sigma_nuN
+build/scan_x
+build/tau_profile
+build/optical_depth
+build/scan_neutrinosphere
+build/generate_profile
+build/generate_collapsar_profile
+build/generate_benchmark_profiles
+build/validate_hera
+__pycache__/
+*.pyc
