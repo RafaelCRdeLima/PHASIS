@@ -250,6 +250,17 @@ $(VALIDATE_HERA): $(BUILD_DIR)/validate_hera.o $(BUILD_DIR)/wavefunctions.o $(BU
 $(BUILD_DIR)/validate_hera.o: $(SRC_DIR)/validate_hera.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+TEST_QUAD := $(BUILD_DIR)/test_quadrature
+
+test-quadrature: dirs $(TEST_QUAD)
+	LD_LIBRARY_PATH=$(CONDA_PREFIX)/lib:$$LD_LIBRARY_PATH $(TEST_QUAD)
+
+$(TEST_QUAD): $(BUILD_DIR)/test_quadrature.o $(BUILD_DIR)/wavefunctions.o $(BUILD_DIR)/dipole_models.o $(BUILD_DIR)/integrals.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(BUILD_DIR)/test_quadrature.o: $(SRC_DIR)/test_quadrature.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
 plot-sigma-nuN: sigma-nuN
 	python $(PLOT_DIR)/plot_sigma_nuN.py
 

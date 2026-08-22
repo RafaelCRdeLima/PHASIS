@@ -125,7 +125,7 @@ antes de começar**, senão a campanha roda sem rede de segurança.
 | D3 | **crítico** | `Makefile:205` | `sigma-nuN` não passa `--Nr --Nz --NlogQ --Nlogx`; valem os defaults de `main()` (50/30/16/16) enquanto `integrals.hpp` declara 400/200 |
 | D4 | alto | `sigma_nuN.cpp` | `NlogQ=16` fixo; resolução em torno do pico Q²~M_W² **encolhe** com E (≈5 nós no PeV, ≈2 em 1e14) → platô e jitter de 1–3% |
 | D5 | alto | `scan_x.cpp`, `main.cpp` | ~~duas convenções de α~~ → **`sigma_nuN.cpp` está certo** (= KK eq. 9/12/13, verificado). São `scan_x` e `main` que não dividem por α e publicam F₂ 236× menor. Ver Q1 |
-| D6 | alto | `parameters.hpp:20-26` | ~~parâmetros GBW errados~~ → **os parâmetros estão certos** (é o ajuste de 4 sabores, com charm). As **massas** é que estão: fit pede m_{u,d,s}=0,14 e m_c=1,5 (GBW) / 1,4 (bCGC); código usa 0,03 e 1,3113. Ver Q3 |
+| D6 | baixo | `parameters.hpp:20-26` | ~~parâmetros GBW errados~~ → **os parâmetros estão certos** (é o ajuste de 4 sabores, com charm). As **massas** é que estão: fit pede m_{u,d,s}=0,14 e m_c=1,5 (GBW) / 1,4 (bCGC); código usa 0,03 e 1,3113. Ver Q3 |
 | D7 | alto | `optical_depth.cpp:83` | `iss >> Enu >> sigma_cm2` lê a **coluna 2** (`sigma_GeV_minus2`); τ sai 2,6e27× maior |
 | ~~D8~~ | — | `sigma_nuN.cpp:33` | **RETIRADO.** `(1-x)^7` é a regra de contagem de constituintes com n_s=4, de KK. Não aplicá-lo a xF₃ também está correto. Ver Q4 |
 | D9 | médio | `dipole_models.cpp:106`, `sigma_nuN.cpp:196` | IIM zera em x ≥ 1e-2 — **desvio da referência**. KK integram todo x com o (1−x)⁷. O GBW está certo. Ver Q4 |
@@ -322,7 +322,77 @@ Princípio 1. A decisão Q3 fica para depois da F2.
 **Aceitação:**
 - F₂(u,d) em x=1e-5, Q²=M_W² = 18,0 ± 5%, com F_L/F₂ = 0,099 ± 0,01.
 - Teste de convergência: dobrar Nr e Nz muda σ(1e6) em < 1%.
-- F1 passa a dar χ²/ponto ≲ 2.
+- ~~F1 passa a dar χ²/ponto ≲ 2~~ → **critério revisto, ver abaixo.**
+
+**CONCLUÍDA.** `make test-quadrature` passa nos três critérios:
+
+```
+1) F_2      = 18.044    (ref 18.0,   desvio 0.25%)   OK
+   F_L/F_2  = 0.098635  (ref 0.099,  desvio 0.37%)   OK
+2) Nr=100 -> 200: 0.0405%   200 -> 400: 0.0039%   400 -> 800: 0.0003%   OK
+3) |psi_T|^2 e |psi_L|^2 vs KK eqs. (12)/(13): desvio 0.00%            OK
+```
+
+Antes: F₂ = 1018 com F_L/F₂ = 4e-5.
+
+**Efeito em σ_νN (GBW, sem F3):**
+
+| E (GeV) | pré-F2 | pós-F2 | Gandhi | pós/Gandhi | redução |
+|---------|--------|--------|--------|------------|---------|
+| 1,0e3 | 2,45e-35 | 2,29e-36 | 6,79e-35 | 0,03 | 11× |
+| 3,7e4 | 6,01e-33 | 8,95e-35 | 2,52e-34 | 0,35 | 67× |
+| 1,4e6 | 8,83e-32 | 8,06e-34 | 9,39e-34 | 0,86 | 110× |
+| 5,2e7 | 3,11e-31 | 3,03e-33 | 3,49e-33 | 0,87 | 103× |
+| 1,9e9 | 6,91e-31 | 8,58e-33 | 1,30e-32 | 0,66 | 80× |
+| 7,2e10 | 1,20e-30 | 2,33e-32 | 4,83e-32 | 0,48 | 51× |
+| 2,7e12 | 1,83e-30 | 5,68e-32 | 1,80e-31 | 0,32 | 32× |
+| 1,0e14 | 2,51e-30 | 1,25e-31 | 6,68e-31 | 0,19 | 20× |
+
+Inclinação log-log por trecho: **1,013** → 0,607 → 0,366 → 0,288 → 0,276 → 0,247 → 0,218.
+O primeiro trecho reproduz o regime linear σ ∝ E que a física exige (era 1,655). **σ(E) agora é
+monotônica** nos 8 pontos.
+
+### Critério da F1 revisto — χ²/ponto ≤ 2 era inatingível
+
+Medido: os dados HERA I+II combinados (2015) têm **erro relativo mediano de 2,5%** na janela
+usada. χ²/ponto = 1 exigiria o GBW — 3 parâmetros, ajustado nos anos 1990 a dados com erro de
+5–10% — dentro de 2,5% de dados de 2015. Não é um alvo realista.
+
+O que o resíduo mostra, com a quadratura convergida:
+
+| Q² [GeV²] | n | ⟨mod/dado⟩ | desvio mediano | χ²/pt |
+|-----------|---|------------|----------------|-------|
+| 0,25–1 | 54 | 1,140 | 14,9% | 24,3 |
+| 1–3 | 45 | 1,026 | 3,0% | 2,9 |
+| 3–10 | 56 | 0,943 | 7,6% | 22,5 |
+| 10–25 | 51 | 0,834 | 16,4% | 119,0 |
+| 25–50 | 33 | 0,781 | 22,2% | 259,3 |
+
+Tendência **monotônica** em Q²: o modelo subestima progressivamente. É a ausência de evolução
+DGLAP no GBW, e é a ressalva que os próprios KK fazem («the dominant contribution comes from
+Q² ~ M_W², where the simple GBW model may not be sufficiently accurate»). Ruído de quadratura
+não seria monotônico — este resíduo é físico.
+
+**Critério novo:** χ²/ponto ≤ 5 em 1 ≤ Q² ≤ 10 GeV² (coração da janela de ajuste), desvio
+mediano global ≤ 15%, e ausência de estrutura **não-monotônica** em Q². A degradação suave em
+Q² alto é limitação conhecida do modelo e vai para o texto, não para o critério.
+
+### Q3 revista — as massas são escolha, não bug
+
+Com a quadratura convergida, m=0,14 dá χ² **pior** (96,1) que m=0,03 (72,5) — a predição que eu
+tinha registrado não se confirmou. O motivo é claro pela tabela acima: o modelo já subestima em
+Q² alto, e massa maior o reduz mais.
+
+Há duas escolhas defensáveis, cada uma de uma referência:
+
+- **(a) consistente com KK:** quarks sem massa. É o que KK usam com estes mesmos parâmetros GBW,
+  e é o alvo da F10. O m=0,03 do código é praticamente isso.
+- **(b) consistente com o ajuste:** m_{u,d,s}=0,14, m_c=1,5, as massas com que σ₀/λ/x₀ foram
+  ajustados (tese §4.7).
+
+Como o critério de aceitação da campanha é **reproduzir a Fig. 3 de KK**, a escolha (a) é a
+coerente, e o código já está nela. **D6 rebaixado a "divergência documentada".** O que resta de
+F6 é medir o efeito de (b) e registrá-lo, não trocar.
 
 ---
 

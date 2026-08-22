@@ -264,8 +264,8 @@ int main(int argc, char* argv[])
     int NlogQ = 16;
     int Nlogx = 16;
 
-    int Nr = 50;
-    int Nz = 30;
+    int Nr = 200;
+    int Nz = 200;
 
     std::string model_name = "GBW";
 

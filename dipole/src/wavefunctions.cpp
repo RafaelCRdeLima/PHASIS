@@ -12,15 +12,10 @@ double epsilon2(double z, double Q2, const Parameters& p)
          + (1.0 - z)*p.mu*p.mu;
 }
 
-double psiT2(double r, double z, double Q2, const Parameters& p)
+double psiT2_pre(double z, double Q2, const Parameters& p,
+                 double eps2v, double K0, double K1)
 {
-    const double eps2 = epsilon2(z, Q2, p);
-    const double eps  = std::sqrt(eps2);
-
-    const double arg = eps*r;
-
-    const double K0 = boost::math::cyl_bessel_k(0, arg);
-    const double K1 = boost::math::cyl_bessel_k(1, arg);
+    (void)Q2;
 
     const double gV2 = p.gV*p.gV;
     const double gA2 = p.gA*p.gA;
@@ -30,7 +25,7 @@ double psiT2(double r, double z, double Q2, const Parameters& p)
     const double termK1 =
         (gV2 + gA2)
         * (z*z + zbar*zbar)
-        * eps2
+        * eps2v
         * K1*K1;
 
     const double termK0 =
@@ -46,16 +41,9 @@ double psiT2(double r, double z, double Q2, const Parameters& p)
     return prefactor * (termK1 + termK0);
 }
 
-double psiL2(double r, double z, double Q2, const Parameters& p)
+double psiL2_pre(double z, double Q2, const Parameters& p,
+                 double eps2v, double K0, double K1)
 {
-    const double eps2 = epsilon2(z, Q2, p);
-    const double eps  = std::sqrt(eps2);
-
-    const double arg = eps*r;
-
-    const double K0 = boost::math::cyl_bessel_k(0, arg);
-    const double K1 = boost::math::cyl_bessel_k(1, arg);
-
     const double gV2 = p.gV*p.gV;
     const double gA2 = p.gA*p.gA;
 
@@ -77,7 +65,7 @@ double psiL2(double r, double z, double Q2, const Parameters& p)
       + (m + mu)*(z*m + zbar*mu);
 
     const double termK1 =
-        A * eps2 * K1*K1;
+        A * eps2v * K1*K1;
 
     const double termK0 =
         (
@@ -90,6 +78,26 @@ double psiL2(double r, double z, double Q2, const Parameters& p)
         6.0 * p.alphaEW / (std::pow(2.0*pi, 2) * Q2);
 
     return prefactor * (termK1 + termK0);
+}
+
+double psiT2(double r, double z, double Q2, const Parameters& p)
+{
+    const double eps2v = epsilon2(z, Q2, p);
+    const double arg   = std::sqrt(eps2v)*r;
+
+    return psiT2_pre(z, Q2, p, eps2v,
+                     boost::math::cyl_bessel_k(0, arg),
+                     boost::math::cyl_bessel_k(1, arg));
+}
+
+double psiL2(double r, double z, double Q2, const Parameters& p)
+{
+    const double eps2v = epsilon2(z, Q2, p);
+    const double arg   = std::sqrt(eps2v)*r;
+
+    return psiL2_pre(z, Q2, p, eps2v,
+                     boost::math::cyl_bessel_k(0, arg),
+                     boost::math::cyl_bessel_k(1, arg));
 }
 
 } // namespace dipole

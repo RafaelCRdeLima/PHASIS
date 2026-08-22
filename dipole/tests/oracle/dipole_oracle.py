@@ -3,10 +3,12 @@
 Reimplementacao fiel de src/{wavefunctions,dipole_models,integrals,sigma_nuN}.cpp,
 incluindo as grades de quadratura originais.
 
-PROPOSITO: este modulo reproduz o comportamento *atual* do C++, nao o correto.
-Serve para provar que uma mudanca no C++ fez exatamente o que se pretendia.
-Concordancia medida com build/sigma_nuN: 3e-4 (sem o termo F3, que vale ~3e-4
-em 1e6 GeV).
+PROPOSITO: reproduzir o comportamento *atual* do C++, nao o correto. Serve para
+provar que uma mudanca no C++ fez exatamente o que se pretendia.
+
+ESTADO: atualizado na F2 (log r + z resolvido nas duas pontas). Para reproduzir
+o codigo pre-F2, chame com logr=False, logz=False, rmin=1e-6, rmax=1e2,
+zmin=1e-6, Nr=50, Nz=30 - e o que tests/baseline/ guarda.
 
 Nao inclui xF3 (exigiria LHAPDF); rode o C++ com --use-F3 0 para comparacao exata.
 """
@@ -89,11 +91,13 @@ def simpson_nodes(a, b, N):
     return xs, w * h / 3.0
 
 
-def F_TL(x, Q2, m, mu, Nr, Nz, rmin=1e-6, rmax=1e2, zmin=1e-6, zmax=1 - 1e-6,
-         logr=False, logz=False):
-    """integrals.cpp:FT_GBW/FL_GBW, ja divididos por alphaEW (sigma_nuN.cpp:75).
+def F_TL(x, Q2, m, mu, Nr, Nz, rmin=1e-8, rmax=1e3, zmin=1e-11, zmax=1 - 1e-6,
+         logr=True, logz=True):
+    """integrals.cpp:structureFunctionsTL, ja dividido por alphaEW (sigma_nuN.cpp:75).
 
-    logr/logz=False reproduz o codigo original (grades uniformes).
+    Defaults = a quadratura da F2 (log r + z resolvido nas duas pontas).
+    logr=logz=False e rmin=1e-6/rmax=1e2/zmin=1e-6 reproduzem o codigo
+    PRE-F2, para comparacao historica com tests/baseline/.
     """
     if logr:
         u, wu = simpson_nodes(np.log(rmin), np.log(rmax), Nr)
@@ -135,8 +139,11 @@ def F2_total(x, Q2, Nr, Nz, **kw):
     return lx * FT, lx * FL
 
 
-def sigma_nuN_CC(E, NlogQ=16, Nlogx=16, Nr=50, Nz=30, Q2min=1.0, **kw):
-    """sigma_nuN.cpp:sigmaNuN_CC. Defaults = os de main(), que o Makefile usa.
+def sigma_nuN_CC(E, NlogQ=16, Nlogx=16, Nr=200, Nz=200, Q2min=1.0, **kw):
+    """sigma_nuN.cpp:sigmaNuN_CC.
+
+    Nr/Nz default = a quadratura da F2. NlogQ/Nlogx seguem os defaults de
+    main() (16/16), que a F4 ainda vai atacar.
 
     Retorna GeV^-2. Sem o termo xF3.
     """
