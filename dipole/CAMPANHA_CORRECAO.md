@@ -113,8 +113,20 @@ make check    # compila e roda a bateria completa
   `besselK01()` em `include/wavefunctions.hpp`, que zera acima de 700 (onde K < 1e-305).
 - **OpenMP:** usado se disponível; só acelera a montagem da tabela.
 - **LHAPDF:** opcional, só para xF₃ (`--use-F3 1`). O Makefile detecta `lhapdf-config` e liga
-  `-DWITH_LHAPDF`; sem ele o tipo do LHAPDF fica escondido num pimpl e tudo funciona. xF₃ é
-  contribuição de valência: 5,8% em 1e3 GeV, 0,006% em 1e9.
+  `-DWITH_LHAPDF`; sem ele o tipo fica escondido num pimpl, e o projeto compila, roda e passa a
+  bateria. **Mas xF₃ não é desprezível em baixa energia** — é valência, e em E pequeno o x típico
+  é grande:
+
+  | E [GeV] | 1e3 | 1e4 | 1e5 | 1e6 | 1e9 | 1e14 |
+  |---|---|---|---|---|---|---|
+  | contribuição de xF₃ | **41%** | 26% | 11% | 3,7% | 0,87% | 0,99% |
+
+  As tabelas de produção **foram geradas com LHAPDF** (`use_F3 1`, CT10nlo — está no cabeçalho
+  delas). Sem LHAPDF, σ abaixo de ~1e5 GeV fica subestimada de forma relevante.
+
+  *Correção:* o número de 5,8% em 1e3 GeV que eu tinha registrado foi medido no código
+  **pré-campanha**, onde o erro de quadratura inflava F₂ por ~100× e fazia o F₃ parecer
+  irrelevante por comparação.
 - **Python** (`requirements.txt`): só para as figuras e para o oráculo de teste.
 - **Dados do HERA:** `dipole/data/hera/hera_nc_ep_920.dat`, 485 pontos, H1+ZEUS combinados
   (EPJ C75 (2015) 580). Versionados no projeto — é o dado a que GBW e bCGC foram ajustados, e

@@ -19,9 +19,13 @@ O cálculo em C++ **não depende de nada além de `g++` com C++17.**
   `boost::math::cyl_bessel_k` a 2,7×10⁻¹⁶, e a troca foi verificada
   bit-a-bit numa tabela de 300 pontos.
 - OpenMP é usado se disponível (só acelera a montagem da tabela).
-- **LHAPDF é opcional**, apenas para o termo xF₃ (`--use-F3 1`). Detectado
-  automaticamente pelo Makefile. Sem ele tudo funciona; xF₃ é contribuição
-  de valência e vale 5,8% em 10³ GeV e 0,006% em 10⁹ GeV.
+- **LHAPDF é opcional para compilar e testar**, e serve ao termo xF₃
+  (`--use-F3 1`). Detectado automaticamente pelo Makefile.
+  **Mas xF₃ não é desprezível em baixa energia** — é a função de estrutura de
+  valência: contribui **41% em 10³ GeV**, 11% em 10⁵, 3,7% em 10⁶ e ~1% acima
+  de 10⁹. As tabelas de produção deste repositório foram geradas **com**
+  LHAPDF (CT10nlo; consta no cabeçalho delas). Sem LHAPDF, σ abaixo de
+  ~10⁵ GeV fica subestimada.
 - Python (`requirements.txt`) só para as figuras e para o oráculo de teste.
 
 Os dados do HERA usados na validação estão em `dipole/data/hera/`.

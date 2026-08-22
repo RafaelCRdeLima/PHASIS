@@ -14,9 +14,22 @@ enum class BeamType {
 // xF3 de corrente carregada, a partir de PDFs colineares do LHAPDF.
 //
 // E a UNICA parte do projeto que precisa de biblioteca externa, e e
-// opcional: sem LHAPDF o projeto compila e roda normalmente, so nao
-// aceita --use-F3 1. A contribuicao de xF3 e de valencia, entao decai
-// depressa com a energia (5.8% em 1e3 GeV, 0.006% em 1e9).
+// opcional no sentido de que sem LHAPDF o projeto compila, roda e passa
+// a bateria de testes -- so nao aceita --use-F3 1.
+//
+// MAS NAO E DESPREZIVEL EM BAIXA ENERGIA. xF3 e a funcao de estrutura de
+// valencia; em E pequeno o x tipico e grande e a valencia domina. Medido
+// com o codigo corrigido (GBW, CT10nlo):
+//
+//     E [GeV]   1e3    1e4    1e5    1e6    1e9    1e14
+//     xF3        41%    26%    11%   3.7%  0.87%  0.99%
+//
+// Ou seja: sem LHAPDF, sigma abaixo de ~1e5 GeV fica subestimada de forma
+// significativa. Acima de 1e6 GeV o efeito e de 1% a 4%.
+//
+// (O numero de 5.8% que circulou antes foi medido no codigo PRE-campanha,
+// onde o erro de quadratura inflava F2 por ~100x e fazia o F3 parecer
+// irrelevante por comparacao.)
 //
 // O tipo do LHAPDF fica escondido num pimpl para que este cabecalho
 // nao dependa dele.

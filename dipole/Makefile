@@ -12,9 +12,10 @@ CXX := g++
 #   nao do boost. Conferido contra boost a 2.7e-16.
 #
 # OPCIONAL: LHAPDF, so para o termo xF3 (--use-F3 1). Detectado
-#   automaticamente abaixo. Sem ele tudo funciona, menos --use-F3 1.
-#   xF3 e contribuicao de valencia: vale 5.8% em 1e3 GeV e 0.006%
-#   em 1e9 GeV.
+#   automaticamente abaixo. Sem ele tudo compila, roda e passa nos
+#   testes -- mas xF3 e valencia e NAO e desprezivel em baixa energia:
+#   41% em 1e3 GeV, 11% em 1e5, 3.7% em 1e6, ~1% acima de 1e9.
+#   Para tabela de producao abaixo de ~1e5 GeV, use LHAPDF.
 # =====================================================
 
 LHAPDF_CONFIG := $(shell command -v lhapdf-config 2>/dev/null)
