@@ -410,7 +410,15 @@ Q2min, use-F3, PDF set, beam, versão do código, data.
   apostila (`sandbox/apostila/dis.tex:1211`), que hoje registra a discrepância como pendência
   aberta.
 
-**Aceitação:** dentro de fator 2 do pQCD em 1e5–1e12 GeV; monotônica; proveniência completa.
+**Aceitação — agora muito mais forte.** Resolvidas Q1–Q4, ficou claro que **este código É o
+cálculo de Kutak–Kwieciński**: mesmas eqs. (2), (8), (9), (12), (13), mesmos parâmetros GBW,
+mesmo (1−x)⁷, mesmo Q²min = 1 GeV². Então o alvo não é "dentro de fator 2 do pQCD" — é
+**reproduzir a Fig. 3 de KK**, a curva GBW de σ_CC(E) entre 1e7 e 1e13 GeV.
+
+É um teste bem mais apertado, e é o critério de aceitação da campanha. Complementos:
+`refs/2.pdf` (Gonçalves & Hepp) para as curvas CGC/BK, e Gandhi et al. como âncora pQCD.
+
+Ainda: monotônica, condicionamento ≤ 5, proveniência completa.
 
 ---
 
@@ -420,7 +428,8 @@ Q2min, use-F3, PDF set, beam, versão do código, data.
 2. 0,05 ≤ F_L/F₂ ≤ 0,25 em x ≲ 1e-3.
 3. σ(E) monotônica em 1e3–1e14 GeV, com amplificação de condicionamento ≤ 5.
 4. Dobrar todas as grades muda σ em < 1%.
-5. σ dentro de fator 2 do pQCD em 1e5–1e12 GeV.
+5. Reproduz a Fig. 3 de Kutak–Kwieciński (curva GBW) em 1e7–1e13 GeV — o código implementa
+   exatamente esse cálculo, então a concordância deve ser bem melhor que fator 2.
 6. Toda tabela reproduzível pelo próprio cabeçalho.
 
 ---
