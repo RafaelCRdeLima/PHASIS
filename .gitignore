@@ -1,3 +1,6 @@
+# build do PHASIS (CMake e Makefile)
+build/
+
 # Bibliografia: artigos publicados e tese de terceiros.
 # NAO versionar - material sob copyright, 28 MB, e nao e produto deste
 # repositorio. As referencias estao citadas por DOI/arXiv em
