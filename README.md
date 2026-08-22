@@ -53,28 +53,25 @@ Plano, evidência e progresso em
 | F5 | Convenção de α unificada nos três arquivos | concluída |
 | F7 | Política de x grande igual para GBW e IIM | concluída |
 | F8 | Camada de aplicação (índice de coluna em `optical_depth`) | concluída |
-| F9/F10 | Proveniência e regeneração das tabelas | GBW concluída |
-| F6 | Efeito das massas do ajuste | pendente |
-| — | **IIM/bCGC falha a validação contra o HERA** | **bloqueada** |
+| F6 | Massas efetivas do ajuste, por modelo | concluída |
+| F9/F10 | Proveniência e regeneração das tabelas | concluída |
 
-### Resultado da tabela GBW
+### Resultado
 
-| | publicada | agora |
+Validação contra σ_red do HERA (H1+ZEUS, 2015), na janela de ajuste de cada modelo:
+
+| | publicado antes | agora |
 |---|---|---|
-| passos decrescentes em σ(E) | 29 | **0** |
-| resíduo de suavidade rms | 0,75% | **0,117%** |
-| σ/Gandhi em 10⁷ GeV | ~100× | **0,95** |
-| inclinação log-log, 1ª década | 1,66 | **0,98** (regime linear) |
+| GBW — desvio mediano | — | **3,87%** (⟨mod/dado⟩ 1,046) |
+| bCGC — desvio mediano | — | **3,02%** (⟨mod/dado⟩ 1,035) |
+| passos decrescentes em σ(E) | 29 (GBW), 23 (IIM) | **0** |
+| resíduo de suavidade rms | 0,75% | **0,117%** (GBW), **0,139%** (IIM) |
+| razão GBW/IIM em 10³→10¹⁴ GeV | 275 → 3,3 | **1,0 – 1,4** |
 | F_L/F₂ em x pequeno | 4×10⁻⁵ | **0,099** |
+| inclinação log-log, 1ª década | 1,66 | **0,98** (regime linear) |
 
-### Aviso sobre a tabela IIM
-
-**`sigma_nuN_CC_IIM.dat` não deve ser usada em produção.** Com a quadratura
-consertada, o bCGC passou a dar ⟨modelo/dado⟩ = 0,10 contra σ_red do HERA — o
-dado a que ele foi ajustado — e a razão varia de 0,07 a 0,17 ao longo da
-janela, então não é só normalização. O cabeçalho da tabela traz o aviso e como
-reproduzir. Resolver exige Rezaeian & Schmidt, PRD **88** (2013) 074016.
-Ver seção 4, Q2 do plano.
+A razão GBW/IIM estável entre 1,0 e 1,4 em 11 décadas é o que a literatura
+diz sobre os dois modelos de saturação; os 275 de antes eram artefato.
 
 ## Bibliografia
 

@@ -35,12 +35,18 @@ GBW_X0 = 0.41e-4
 GBW_Q0SQ = 1.0
 GBW_SIGMA0 = GBW_SIGMA0_MB / 0.389379   # GeV^-2
 
-# ---- massas de quark: parameters.hpp:19-26 --------------------------------
-M_U = M_D = M_S = 0.03
-M_C = 1.3113
+# ---- massas de quark ------------------------------------------------------
+# Fazem parte do ajuste GBW (Golec-Biernat & Wusthoff 1999, 4 sabores).
+# Ver dipole_models.hpp:GBWParameters.
+M_U = M_D = M_S = 0.14
+M_C = 1.5
 
 # canais somados por computeFCCtotal: (u,d) e (c,s)
 CC_CHANNELS = ((M_U, M_D), (M_C, M_S))
+
+# Massas que o codigo usava ANTES da campanha, necessarias para reproduzir
+# tests/baseline/. Nao sao as do ajuste; ver CAMPANHA_CORRECAO.md, Q3.
+CC_CHANNELS_PRE_F2 = ((0.03, 0.03), (1.3113, 0.03))
 
 
 def sigma_dip_gbw(r, x):
@@ -128,10 +134,10 @@ def large_x_factor(x):
     return (1.0 - x) ** 7.0 if 0.0 < x < 1.0 else 0.0
 
 
-def F2_total(x, Q2, Nr, Nz, **kw):
+def F2_total(x, Q2, Nr, Nz, channels=None, **kw):
     """sigma_nuN.cpp:computeFCCtotal - soma canais (u,d) + (c,s), aplica (1-x)^7."""
     FT = FL = 0.0
-    for m, mu in CC_CHANNELS:
+    for m, mu in (channels or CC_CHANNELS):
         t, l = F_TL(x, Q2, m, mu, Nr, Nz, **kw)
         FT += t
         FL += l
@@ -139,7 +145,8 @@ def F2_total(x, Q2, Nr, Nz, **kw):
     return lx * FT, lx * FL
 
 
-def sigma_nuN_CC(E, NlogQ=16, Nlogx=16, Nr=200, Nz=200, Q2min=1.0, **kw):
+def sigma_nuN_CC(E, NlogQ=16, Nlogx=16, Nr=200, Nz=200, Q2min=1.0,
+                 channels=None, **kw):
     """sigma_nuN.cpp:sigmaNuN_CC.
 
     Nr/Nz default = a quadratura da F2. NlogQ/Nlogx seguem os defaults de
@@ -166,7 +173,7 @@ def sigma_nuN_CC(E, NlogQ=16, Nlogx=16, Nr=200, Nz=200, Q2min=1.0, **kw):
             y = Q2 / (x * s)
             if not (0.0 < y < 1.0):
                 continue
-            FT, FL = F2_total(x, Q2, Nr, Nz, **kw)
+            FT, FL = F2_total(x, Q2, Nr, Nz, channels=channels, **kw)
             F2 = FT + FL
             prop = (MW * MW / (Q2 + MW * MW)) ** 2
             pre = GF * GF * MN * E / pi * prop

@@ -31,11 +31,13 @@ TOL_F2 = 0.02
 
 # grades uniformes originais, congeladas junto com o baseline
 PRE_F2 = dict(Nr=50, Nz=30, logr=False, logz=False,
-              rmin=1e-6, rmax=1e2, zmin=1e-6)
+              rmin=1e-6, rmax=1e2, zmin=1e-6,
+              channels=o.CC_CHANNELS_PRE_F2)
 
-# valor de referencia de F_2(u,d) em x=1e-5, Q2=M_W^2 (ver src/test_quadrature.cpp)
-F2_REF = 18.044
-FL_F2_REF = 0.0986
+# F_2(u,d) em x=1e-5, Q2=M_W^2, com as massas do ajuste GBW (m_uds=0.14).
+# Confira com: make test-quadrature
+F2_REF = 17.928
+FL_F2_REF = 0.0994
 
 
 def check_baseline() -> int:
@@ -63,7 +65,7 @@ def check_baseline() -> int:
 def check_pos_f2() -> int:
     print("2) MODO POS-F2 - F_2(u,d) em x=1e-5, Q2=M_W^2")
 
-    FT, FL = o.F_TL(1.0e-5, o.MW ** 2, 0.03, 0.03, 200, 200)
+    FT, FL = o.F_TL(1.0e-5, o.MW ** 2, o.M_U, o.M_D, 200, 200)
     f2 = FT + FL
     ratio = FL / f2
 

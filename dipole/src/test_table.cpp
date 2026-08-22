@@ -31,7 +31,10 @@ StructureTable montar(int Nx, int NQ, int Nr, int Nz, double logEmax = 14.0)
 {
     GBWParameters gbw;
     IIMParameters iim;
+
     QuarkMasses masses;
+    masses.u = masses.d = masses.s = gbw.m_light;
+    masses.c = gbw.m_charm;
 
     QuadratureGrid quad; quad.Nr = Nr; quad.Nz = Nz;
 

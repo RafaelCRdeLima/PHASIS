@@ -81,7 +81,16 @@ int main(int argc, char* argv[])
 
     GBWParameters gbw;
     IIMParameters iim;
+
+    // As massas efetivas fazem parte do ajuste de cada modelo.
     QuarkMasses masses;
+    if (model == DipoleModel::GBW) {
+        masses.u = masses.d = masses.s = gbw.m_light;
+        masses.c = gbw.m_charm;
+    } else {
+        masses.u = masses.d = masses.s = iim.m_light;
+        masses.c = iim.m_charm;
+    }
 
     weak::BeamType beam = weak::parseBeamType(beam_name);
 
@@ -138,25 +147,13 @@ int main(int argc, char* argv[])
     out << "# Q2min_GeV2 " << Q2min << "\n";
     out << "# largeXFactor (1-x)^7   [regra de contagem de constituintes, n_s=4]\n";
     if (model == DipoleModel::GBW) {
+        out << "# GBW [Golec-Biernat & Wusthoff, PRD 59 (1999) 014017; ajuste de 4 sabores]\n";
         out << "# GBW sigma0_mb " << gbw.sigma0_mb
             << "  lambda " << gbw.lambda
             << "  x0 " << gbw.x0
             << "  Q0sq " << gbw.Q0sq << "\n";
     } else {
-        out << "# AVISO ---------------------------------------------------------------\n";
-        out << "# AVISO Esta tabela NAO passou na validacao contra o HERA.\n";
-        out << "# AVISO Com os parametros abaixo, o limite eletromagnetico do bCGC da\n";
-        out << "# AVISO <modelo/dado> = 0.10 contra sigma_red do H1+ZEUS -- o mesmo dado\n";
-        out << "# AVISO a que o modelo FOI ajustado -- e a razao varia de 0.07 a 0.17\n";
-        out << "# AVISO ao longo da janela, entao nao e so normalizacao: a forma tambem\n";
-        out << "# AVISO nao bate. Reproduza com:\n";
-        out << "# AVISO   make validate-hera HERA_MODEL=IIM HERA_MQ=0.14 HERA_FLAVORS=udsc\n";
-        out << "# AVISO Causa nao identificada. Nenhum valor de x0 no intervalo\n";
-        out << "# AVISO 6.9e-10 a 6.9e-6 resolve. Precisa de Rezaeian & Schmidt,\n";
-        out << "# AVISO PRD 88 (2013) 074016, que nao esta em refs/.\n";
-        out << "# AVISO Ver CAMPANHA_CORRECAO.md secao 4, Q2 (reaberta).\n";
-        out << "# AVISO NAO USAR EM PRODUCAO.\n";
-        out << "# AVISO ---------------------------------------------------------------\n";
+        out << "# bCGC [Rezaeian & Schmidt, PRD 88 (2013) 074016, Tabela II, m_c=1.4]\n";
         out << "# bCGC B_CGC " << iim.BCGC
             << "  gamma_s " << iim.gamma_s
             << "  N0 " << iim.N0

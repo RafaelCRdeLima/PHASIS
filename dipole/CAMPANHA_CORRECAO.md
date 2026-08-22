@@ -187,70 +187,61 @@ dividem por α e portanto publicam F₂ 236× menor. Documentar a normalização
 `Projeto_DIS.pdf` §3.3 — a fórmula lá está certa, mas omitir a normalização de ψ é o que
 tornou a divergência entre os três arquivos invisível.
 
-### Q2 — `x0` do bCGC → **REABERTA** (era "código certo")
+### Q2 — `x0` do bCGC → **RESOLVIDA. Era erro de transcrição de fator 10⁶.**
 
-Tese §4.8, p. 121: «B_CGC = 5.5 GeV², γ_s = 0.6492, N₀ = 0.3658, **x₀ = 0.00069 × 10⁻⁶** e
-λ = 0.2023», de Rezaeian, Siddikov, Van de Klundert & Venugopalan, Phys. Rev. D **87** (2013)
-034002. É valor publicado; o x₀ minúsculo é compensado pelo λ pequeno.
-
-**Isso continua valendo — o código bate com a tese.** Mas com a quadratura consertada (F2–F4),
-o bCGC passou a **falhar a validação contra o HERA**, que é o dado a que ele foi ajustado:
+`refs/rezaeian2013.pdf` = Rezaeian & Schmidt, Phys. Rev. D **88** (2013) 074016. **Tabela II**,
+segunda linha (a que a tese cita):
 
 ```
-  bCGC vs sigma_red do HERA (m_uds=0.14, 4 sabores, quadratura convergida)
-    x0 = 6.9e-10 (tese)   chi2/pt = 2326   <mod/dado> = 0.105
-    x0 = 6.9e-9                     2096                0.156
-    x0 = 6.9e-8                     1773                0.231
-    x0 = 6.9e-7                     1345                0.338
-    x0 = 6.9e-6                      824                0.490
-    x0 = 1.05e-7 (Watt-Kowalski)    1703                0.248
-  GBW (referencia)                    72                0.957
+ B_CGC/GeV^-2   m_c/GeV   gamma_s              N0                   x0                        lambda               chi2/d.o.f.
+ 5.5            1.4       0.6492 +- 0.0003     0.3658 +- 0.0006     0.00069 +- 6.46e-6        0.2023 +- 0.0003     370.9/297 = 1.249
 ```
 
-**Nenhum x0 resolve**, e o desacordo não é só de escala: ⟨mod/dado⟩ varia de 0,148 em
-Q² < 1 GeV² a 0,071 em Q² = 25–50, e de 0,171 a 0,076 ao longo de x — 31% de dispersão
-relativa. A **forma** também está errada.
+**x₀ = 0,00069 = 6,9×10⁻⁴.** O `6,46×10⁻⁶` é a **incerteza**. A tese transcreveu como
+`0.00069 × 10⁻⁶`, lendo o expoente da incerteza como multiplicador do valor central, e o código
+herdou: `x0 = 0.00069e-6` = 6,9×10⁻¹⁰. **Fator 10⁶.**
 
-Diagnóstico intermediário: Q_s(x=1e-5, b=0) = 0,379 GeV com estes parâmetros, contra ~0,6–0,8
-dos ajustes bCGC publicados. Para subir Q_s² por 10× com λ = 0,2023 seria preciso x₀ ≈ 6e-5,
-que não é um x₀ de bCGC plausível — ou seja, λ e x₀ não são mutuamente consistentes como
-transcritos.
+O artigo também corrige outros dois pontos que a tese trazia errados:
 
-Descartado: a integral em b já converge com **Nb = 40** (D15 é não-problema); b_max = 20 é
-folgado (N cai a 1,7e-4 em b = 8); as eqs. (4.46), (4.47) e (4.48) da tese conferem com o código
-linha a linha.
+| | tese | artigo (Tab. II + texto) |
+|---|---|---|
+| x₀ | 0,00069×10⁻⁶ | **0,00069** |
+| m_{u,d,s} | 0,14 GeV | **10⁻²–10⁻⁴ GeV** («prefer very light quark masses») |
+| Y | ln(x₀/x) | **ln(1/x)** — o código já estava certo |
 
-**Por que só apareceu agora:** o erro de quadratura inflava tudo por ~100×, e os parâmetros do
-bCGC deflacionam por ~10×. Os dois se cancelavam parcialmente, e a tabela IIM antiga parecia
-*mais próxima* do pQCD que a GBW. Não estava certa — estava errada duas vezes.
+κ = 9,9 (valor LO do BFKL) e a forma de Q_s(x,b) conferem com o código.
 
-**Ação: NÃO ajustar parâmetro para o número ficar bonito.** Isso é o Princípio 1 ao contrário.
-A tabela IIM regerada leva um bloco `# AVISO ... NAO USAR EM PRODUCAO` no cabeçalho.
-**Bloqueia:** precisa de Rezaeian & Schmidt, PRD **88** (2013) 074016, que não está em `refs/`.
-(A tese cita [42] = Rezaeian, Siddikov, Van de Klundert & Venugopalan PRD 87 034002 para os
-parâmetros do bCGC, mas esse é o artigo do **IP-Sat**; o do bCGC é o [43].) **D14 reaberto.**
+**Efeito, contra σ_red do HERA na janela do próprio ajuste (0,75 ≤ Q² ≤ 650, x ≤ 0,01):**
 
-### Q3 — Conjunto GBW → **parâmetros certos, MASSAS erradas**
-
-Tese §4.7, p. 120: σ₀ = 29.12 mb, λ = 0.277, x₀ = 0.41×10⁻⁴ «ajustados aos dados de F₂ do HERA
-considerando quarks leves **e a contribuição do quark charm**». KK confirmam: «obtained from the
-fit with four flavors». Somar os canais (u,d) e (c,s) é o correto — KK: «os dipolos que
-contribuem para transições favorecidas por Cabibbo são ud̄(dū), cs̄(sc̄)».
-
-**Mas o ajuste vem com massas próprias, e são outras:**
-
-| | fit GBW (tese §4.7) | fit bCGC (tese §4.8) | código |
+| | χ²/pt | desvio mediano | ⟨mod/dado⟩ |
 |---|---|---|---|
-| m_{u,d,s} | **0,14 GeV** | **0,14 GeV** | 0,03 GeV |
-| m_c | **1,5 GeV** | **1,4 GeV** | 1,3113 GeV |
+| antes (x₀ = 6,9e-10) | 2892 | ~90% | 0,10 |
+| **depois (x₀ = 6,9e-4, massas do artigo)** | **4,85** | **3,02%** | **1,035** |
 
-As massas efetivas são parâmetros do ajuste, não convenção livre. Usar 0,03 quebra o ajuste ao
-HERA — e é justamente onde mais dói, porque em z→0 o dipolo máximo vai como 1/m (fator 4,7).
+O artigo reporta χ²/dof = 1,249 com tratamento próprio de sistemáticas correlacionadas; 4,85 com
+erro total simples é consistente.
 
-**Ação (F6):** `QuarkMasses` por modelo, com os valores do ajuste correspondente.
+### Q3 — Conjunto GBW → **massas do ajuste, e eu tinha concluído errado**
 
-**Predição a testar depois da F2:** hoje, na F1, m=0,14 dá χ² *pior* que m=0,03 (73 contra 21).
-Com a quadratura convergida a ordem tem que inverter. Se não inverter, há outra coisa errada.
+Os parâmetros σ₀ = 29,12 mb, λ = 0,277, x₀ = 0,41×10⁻⁴ são o ajuste de **quatro sabores**
+(Golec-Biernat & Wüsthoff 1999), confirmado por KK. As massas efetivas fazem parte do ajuste:
+**m_{u,d,s} = 0,14 GeV, m_c = 1,5 GeV**.
+
+Na F2 eu registrei que «m = 0,14 dá χ² pior, então as massas são escolha, não bug» e rebaixei o
+D6. **Estava errado**, por dois motivos que só ficaram visíveis depois: aquele teste usava
+apenas 3 sabores (`uds`), e o ajuste inclui charm. Com os 4 sabores:
+
+| m_{u,d,s} | χ²/pt | ⟨mod/dado⟩ |
+|---|---|---|
+| 0,01 | 35,9 | 1,138 |
+| 0,03 (código antigo) | 34,2 | 1,134 |
+| **0,14 (ajuste)** | **12,4** | **1,071** |
+
+O dado concorda com a referência. `GBWParameters` e `IIMParameters` passaram a carregar
+`m_light` e `m_charm`, e `sigma_nuN` escolhe conforme o modelo. **F6 concluída.**
+
+**Resultado final contra o HERA:** GBW 3,87% de desvio mediano, bCGC 3,02% — os dois em
+qualidade de ajuste.
 
 ### Q4 — Política para x > 1e-2 → **o GBW segue a referência; o corte do IIM é o desvio**
 

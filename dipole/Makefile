@@ -273,7 +273,7 @@ $(BUILD_DIR)/weak_structure_functions.o: $(SRC_DIR)/weak_structure_functions.cpp
 
 NR := 400
 NZ := 200
-HERA_FLAVORS := uds
+HERA_FLAVORS := udsc
 HERA_MQ := -1
 HERA_MODEL := GBW
 

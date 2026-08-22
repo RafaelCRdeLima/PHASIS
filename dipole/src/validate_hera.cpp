@@ -166,17 +166,25 @@ int main(int argc, char* argv[])
     };
     if (flavor_set == "udsc") flavors.push_back(QuarkFlavor::c);
 
-    QuarkMasses masses;
-    if (mq > 0.0) {
-        masses.u = masses.d = masses.s = mq;
-    }
-
     GBWParameters gbw;
     IIMParameters iim;
     if (iim_x0 > 0.0) iim.x0 = iim_x0;
     if (iim_Nb > 0)   iim.Nb = iim_Nb;
 
     const bool useIIM = (model == "IIM" || model == "bCGC");
+
+    // massas default = as do ajuste do modelo escolhido
+    QuarkMasses masses;
+    if (useIIM) {
+        masses.u = masses.d = masses.s = iim.m_light;
+        masses.c = iim.m_charm;
+    } else {
+        masses.u = masses.d = masses.s = gbw.m_light;
+        masses.c = gbw.m_charm;
+    }
+    if (mq > 0.0) {
+        masses.u = masses.d = masses.s = mq;
+    }
 
     try {
         auto all = readHera(data_file);

@@ -44,8 +44,13 @@ void checa(const char* nome, double got, double esperado, double tol_rel)
 
 StructureTL canalUD(double x, double Q2, int Nr, int Nz)
 {
-    Parameters wf = makeCCParameters(QuarkFlavor::u, QuarkFlavor::d);
     GBWParameters gbw;
+
+    QuarkMasses m;
+    m.u = m.d = m.s = gbw.m_light;
+    m.c = gbw.m_charm;
+
+    Parameters wf = makeCCParameters(QuarkFlavor::u, QuarkFlavor::d, m);
     QuadratureGrid g; g.Nr = Nr; g.Nz = Nz;
     StructureTL F = structureGBW(x, Q2, wf, gbw, g);
     F.FT /= wf.alphaEW;
