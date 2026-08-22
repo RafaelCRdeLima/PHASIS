@@ -5,7 +5,13 @@
 //
 // Le um arquivo chave=valor e escreve CSV com
 //
-//   E_inf_GeV,b_cm,r_min_cm,tau,P_surv,column_g_cm2,path_cm,crosses_matter
+//   E_inf_GeV, b_cm, i_rad, psi_t_rad, r_min_cm, tau, P_surv,
+//   tau_inbound, tau_outbound, column_g_cm2, path_cm, theta_min,
+//   theta_max, n_disk_crossings, crosses_matter, captured,
+//   near_critical, deflection_rad, E_loc_max_GeV, winding_turns,
+//   tolerance_met, error, error_msg
+//
+// (esta lista ja esteve desatualizada; ela e gerada em escreve_csv)
 //
 // Chaves reconhecidas estao listadas em `imprime_ajuda()`.
 // =====================================================================

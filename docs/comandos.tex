@@ -1,0 +1,442 @@
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
+\usepackage[margin=2.1cm,top=2.3cm,bottom=2.3cm]{geometry}
+\usepackage{newtxtext,newtxmath}
+\usepackage{inconsolata}
+\usepackage{xcolor}
+\usepackage{fancyvrb}
+\usepackage{tcolorbox}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[colorlinks=true,linkcolor=azul,urlcolor=azul]{hyperref}
+
+\definecolor{azul}{HTML}{2A4B8D}
+\definecolor{ferrugem}{HTML}{A63A26}
+\definecolor{fundo}{HTML}{F4F4F0}
+\definecolor{borda}{HTML}{D8D8D1}
+\definecolor{cinza}{HTML}{5A5F66}
+\definecolor{verde}{HTML}{2E7D4F}
+
+\tcbuselibrary{listings,skins,breakable}
+
+% ---- caixa de comando ------------------------------------------------
+% tcblisting, nao tcolorbox+ttfamily: sem verbatim de verdade, '_' vira
+% subscrito, '#' some e '$PATH' entra em modo matematico.
+\newtcblisting{comando}{
+  enhanced, listing only, breakable, sharp corners,
+  colback=fundo, colframe=borda, boxrule=0.4pt,
+  borderline west={1.6pt}{0pt}{azul},
+  left=6pt, right=6pt, top=4pt, bottom=4pt,
+  before skip=5pt, after skip=2pt,
+  listing options={
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true, breakindent=14pt,
+    columns=fullflexible, keepspaces=true, showstringspaces=false,
+  },
+}
+
+% ---- linha "o que isto testa" ---------------------------------------
+\newcommand{\teste}[1]{%
+  \par\vspace{1pt}\noindent
+  {\color{verde}\footnotesize$\vartriangleright$}\hspace{3pt}%
+  {\color{cinza}\footnotesize #1}\par\vspace{7pt}}
+
+\newcommand{\aviso}[1]{%
+  \par\vspace{1pt}\noindent
+  {\color{ferrugem}\footnotesize$\blacktriangleright$}\hspace{3pt}%
+  {\color{cinza}\footnotesize #1}\par\vspace{7pt}}
+
+\titleformat{\section}{\normalfont\large\bfseries\color{azul}}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection.}{0.6em}{}
+\titlespacing{\section}{0pt}{16pt}{6pt}
+\titlespacing{\subsection}{0pt}{11pt}{4pt}
+
+\pagestyle{fancy}\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\footnotesize\color{cinza}PHASIS --- lista de comandos}
+\fancyhead[R]{\footnotesize\color{cinza}\thepage}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+
+\begin{document}
+
+\begin{center}
+{\LARGE\bfseries PHASIS --- lista de comandos}\\[3pt]
+{\color{cinza}Como rodar o programa, e que teste cada comando permite fazer}\\[2pt]
+{\footnotesize\color{cinza}commit \texttt{982f376} \quad$\cdot$\quad 22 de agosto de 2026}
+\end{center}
+
+\vspace{4pt}
+
+{\color{cinza}\small
+Legenda: {\color{verde}$\vartriangleright$} o que o comando permite testar
+\quad $\cdot$ \quad {\color{ferrugem}$\blacktriangleright$} armadilha.
+Todos os caminhos são relativos à raiz do repositório, exceto onde o
+comando começa com \texttt{cd dipole}.}
+
+% =====================================================================
+\section{Ambiente}
+
+Só o \texttt{dipole} com \texttt{-{}-use-F3 1} e os geradores em Python
+precisam de biblioteca externa. O PHASIS compila e roda com \texttt{g++}
+e a STL, sem mais nada.
+
+\begin{comando}
+export PATH=/home/rafael/micromamba/envs/dis/bin:$PATH
+export LD_LIBRARY_PATH=/home/rafael/micromamba/envs/dis/lib:$LD_LIBRARY_PATH
+\end{comando}
+\teste{LHAPDF 6.5.6, \texttt{yadism} 0.13.11 e os conjuntos
+\texttt{CT10nlo} e \texttt{NNPDF31\_nlo\_as\_0118} vivem nesse env
+micromamba, não no Python do sistema.}
+
+\begin{comando}
+cd dipole && make env
+\end{comando}
+\teste{Diz se o LHAPDF foi detectado. Sem as duas linhas acima ele
+reporta \texttt{ausente} e um binário já compilado falha com
+\texttt{libLHAPDF.so: cannot open shared object file}.}
+
+% =====================================================================
+\section{Compilar}
+
+\begin{comando}
+make -j8
+\end{comando}
+\teste{Constrói \texttt{trace}, \texttt{alpha\_scan},
+\texttt{redshift\_scan} e as oito fases de teste. Também há
+\texttt{CMakeLists.txt}, mas o Makefile não exige \texttt{cmake} no
+PATH.}
+
+\begin{comando}
+cd dipole && make -j8 && make build/sigma_nuN -j8
+\end{comando}
+\teste{O \texttt{dipole} tem build próprio. O acoplamento com o PHASIS é
+\emph{por arquivo} --- as tabelas de seção de choque --- e não por link,
+então os dois nunca precisam compilar juntos.}
+
+% =====================================================================
+\section{Suíte de aceitação}
+
+\begin{comando}
+make test
+\end{comando}
+\teste{247 verificações em 8 fases, $\sim$75~s no total. Deve terminar
+com \texttt{0 falhas} em todas. É o primeiro comando a rodar depois de
+qualquer mudança.}
+
+\begin{comando}
+./build/test_phase1        # 0,02 s -- quadratura, unidades, casos analíticos
+./build/test_phase2        # 0,03 s -- relatividade geral, ponto de retorno, deflexão
+./build/test_phase3        # 10 s   -- perfil com theta, rota de EDO acoplada
+./build/test_phase4        #  6 s   -- cascata NC analítica, kernel, round-trip
+./build/test_phase5        # 0,04 s -- casca tau = 1, protocolo de raízes
+./build/test_phase6        # 0,35 s -- topologia do raio emitido, cone de escape
+./build/test_phase7        # 0,06 s -- acoplamento GR x saturação, alpha_eff
+./build/test_phase8        # 58 s   -- corrente neutra de ponta a ponta
+\end{comando}
+\teste{Rodar isolado quando se quer o detalhe. Cada um imprime linha a
+linha o valor obtido, a referência e o desvio relativo.}
+\aviso{As fases 7 e 8 leem as tabelas em \texttt{dipole/data/}. Se elas
+não existirem, o teste \emph{falha} com a mensagem de como gerá-las ---
+não pula em silêncio.}
+
+\begin{comando}
+cd dipole && make check
+\end{comando}
+\teste{Roda \texttt{test-quadrature}, \texttt{test-table} e
+\texttt{validate-hera}. O primeiro compara $|\psi_T|^2$ e $|\psi_L|^2$
+contra Kutak--Kwieciński eqs.~(12) e (13); deve dar desvio
+$0{,}00\%$.}
+
+% =====================================================================
+\section{Gerar as tabelas do dipolo}
+
+\subsection{Corrente carregada}
+
+\begin{comando}
+cd dipole
+./build/sigma_nuN --model GBW --current CC --NE 300 --logEmin 3 --logEmax 14 \
+    --nodesQ 16 --nodesX 16 --Ntabx 121 --NtabQ 121 \
+    --use-F3 1 --pdf-set NNPDF31_nlo_as_0118
+\end{comando}
+\teste{$\sim$50~s. Produz \texttt{data/sigma\_nuN\_CC\_GBW.dat} com as
+nove chaves de metadados e o hash do commit. Trocar \texttt{-{}-model
+GBW} por \texttt{IIM} dá o bCGC.}
+
+\subsection{Corrente neutra, total e diferencial}
+
+\begin{comando}
+./build/sigma_nuN --model GBW --current NC --NE 300 --logEmin 3 --logEmax 14 \
+    --nodesQ 16 --nodesX 16 --nY 120 \
+    --use-F3 1 --pdf-set NNPDF31_nlo_as_0118
+\end{comando}
+\teste{$\sim$1,5~min (o NC tem 4 canais de dipolo contra 2 do CC).
+Produz \texttt{sigma\_nuN\_NC\_GBW.dat} \emph{e}
+\texttt{dsigma\_dy\_NC\_GBW.dat}. O cabeçalho do segundo reporta, por
+energia, que fração de $\sigma$ a integral em $y$ recupera --- deve
+ficar entre 0,999 e 1,011.}
+
+\aviso{O teste de física que vale fazer: $\sigma_{NC}/\sigma_{CC}$ tem de
+convergir para $\approx 0{,}42$. Foi ele, e não nada interno ao código,
+que pegou uma tabela NC com os acoplamentos errados que dava 2,49.}
+
+\begin{comando}
+python3 -c "
+import numpy as np
+cc=np.loadtxt('data/sigma_nuN_CC_GBW.dat'); nc=np.loadtxt('data/sigma_nuN_NC_GBW.dat')
+E,r=cc[:,0],nc[:,2]/cc[:,2]
+for v in (1e5,1e9,1e13):
+    k=np.argmin(abs(E-v)); print('E=%9.2g  NC/CC=%.4f'%(E[k],r[k]))
+print('previsto: (1.3127/4)*(M_Z/M_W)^2 = 0.4224')"
+\end{comando}
+\teste{Deve dar 0,358 / 0,405 / 0,412. A subida com a energia é o $xF_3$
+do CC saindo de cena --- ele é de valência.}
+
+\subsection{Convergência da quadratura}
+
+\begin{comando}
+for n in 16 48 128; do
+  ./build/sigma_nuN --model GBW --current CC --NE 80 --logEmin 7 --logEmax 14 \
+      --use-F3 0 --nodesQ $n --nodesX $n --quiet
+  cp data/sigma_nuN_CC_GBW.dat /tmp/nos_$n.dat
+done
+\end{comando}
+\teste{As três saídas devem concordar em $\sim 5\times10^{-7}$. Se
+divergirem em $10^{-3}$ e a diferença cair como $N^{-1}$ em vez de
+$N^{-4}$, há descontinuidade num extremo de quadratura --- foi
+exatamente esse o sintoma do bug do extremo $y=1$, que custava um fator
+670 em ruído.}
+
+\begin{comando}
+./build/sigma_nuN --model GBW --current CC --NE 80 --logEmin 7 --logEmax 14 \
+    --use-F3 0 --Ntabx 241 --NtabQ 241 --quiet
+\end{comando}
+\teste{Dobrar a tabela de $F$ não deve mudar \emph{nada}. Se mudar, o
+erro está na interpolação; se não mudar mas o resultado variar com
+\texttt{-{}-nodesQ}, está na quadratura de $\sigma$. Separar as duas
+causas é o que o par de comandos permite.}
+
+% =====================================================================
+\section{Validar o dipolo contra dados}
+
+\begin{comando}
+cd dipole
+./build/validate_hera --model GBW --Nr 400 --Nz 200 \
+    --Q2min 0.25 --Q2max 50 --xmax 0.01 --flavors udsc --mq 0.14
+\end{comando}
+\teste{Limite eletromagnético contra 239 pontos de H1+ZEUS combinados,
+EPJ~C75 (2015) 580. Deve dar $\langle$modelo/dado$\rangle = 1{,}046$.
+Escreve \texttt{data/hera\_validation.dat} com pull por ponto.}
+
+\begin{comando}
+./build/validate_hera --model IIM --iim-x0 0.69e-3 --Nr 400 --Nz 200
+\end{comando}
+\teste{O bCGC. Vale variar \texttt{-{}-iim-x0}: com
+$x_0 = 0{,}00069\times 10^{-6}$ --- o valor que estava no código, com o
+expoente da \emph{incerteza} lido como multiplicador --- a razão cai para
+$0{,}10$ contra o próprio dado a que o modelo foi ajustado.}
+
+\begin{comando}
+./build/dipole --mode wavefunctions --current NC --flavor u --Q2 10
+./build/dipole --mode integrand --current CC --flavor u --x 1e-5 --Q2 10
+./build/dipole --mode sigma --current CC --flavor u --x 1e-5 --Q2 10
+\end{comando}
+\teste{Diagnóstico ponto a ponto. O modo \texttt{integrand} é o que
+mostra o pico em $r \sim 1/\varepsilon$ --- 0,025~GeV$^{-1}$ em
+$Q^2 = M_W^2$ --- que uma grade uniforme em $r$ perde inteiro.}
+
+% =====================================================================
+\section{A tabela colinear}
+
+Serve de referência: as mesmas convenções e a mesma fórmula mestra do
+dipolo, com funções de estrutura colineares em vez do modelo de dipolo.
+
+\begin{comando}
+python3 tools/build_collinear_sf.py
+\end{comando}
+\teste{$\sim$13~min. Tabula $F_2$, $F_L$ e $xF_3$ com yadism NLO sobre
+NNPDF3.1 numa grade $121\times71$ em $(x,Q^2)$.}
+\aviso{Fatia por $Q^2$ e grava cada fatia, então o RSS fica constante em
+$\sim$800~MB e uma interrupção custa uma fatia. Pedir os 8591 pontos de
+uma vez custaria 8,4~GB e travaria a máquina --- já aconteceu. Rodar de
+novo retoma de onde parou.}
+
+\begin{comando}
+python3 tools/make_collinear_table.py --NE 300
+\end{comando}
+\teste{$\sim$5~s. Integra com a \emph{mesma} fórmula mestra do C++. Uma
+quarta coluna diz que fração de $\sigma$ vem de $x$ abaixo do grid do
+PDF: 0\% até $2\times10^{10}$~GeV, 21\% em $1{,}3\times10^{13}$. Acima
+disso $\alpha_{\rm eff}$ colinear é propriedade da extrapolação, não
+medida.}
+\aviso{Confere com a literatura: $\sigma_{CC}(10^6~{\rm GeV}) \approx
+6\times10^{-34}$~cm$^2$. Se sair fora disso por mais de 20\%, o cartão de
+teoria ou o conjunto de PDF mudou.}
+
+% =====================================================================
+\section{Medir o acoplamento GR $\times$ saturação}
+
+\begin{comando}
+./build/alpha_scan --dipole dipole/data/sigma_nuN_CC_GBW.dat \
+                   --colinear data/sigma_nuN_CC_collinear.dat \
+                   --out data/alpha_scan_GBW.csv --nE 240
+\end{comando}
+\teste{Tabula $\alpha_{\rm eff} = d\ln\sigma/d\ln E$ e o teto
+$3^{\alpha/2}$ para as duas tabelas. O teto tem de ser
+\emph{não-crescente} em $E \geq 10^7$~GeV --- é a assinatura da
+saturação, e é ela que distingue o efeito de um mero reajuste de PDF.}
+\aviso{Chama \texttt{assert\_comparable} antes de qualquer conta. Passar
+uma tabela de $\nu$ e uma de $\bar\nu$, ou uma NC e uma CC, faz lançar.
+Vale tentar de propósito, para ver o guarda funcionar:
+\texttt{-{}-colinear dipole/data/sigma\_nuN\_NC\_GBW.dat}.}
+
+\begin{comando}
+./build/redshift_scan --dipole dipole/data/sigma_nuN_CC_GBW.dat \
+                      --colinear data/sigma_nuN_CC_collinear.dat \
+                      --out data/redshift_scan_GBW.csv --nE 9
+\end{comando}
+\teste{Mede $R(b,E) = (\tau_{\rm full} - \tau_{\rm frozen})/\tau_{\rm
+frozen}$ com a \emph{mesma} geometria; só o argumento de $\sigma$ muda.
+$R$ é invariante sob $\sigma \to k\sigma$, então isola a forma e não a
+normalização.}
+\aviso{Geometria configurável: \texttt{-{}-rs -{}-rho0 -{}-r0 -{}-p
+-{}-rin -{}-rout}. Vale testar \texttt{-{}-rin 2.0}: com $r_{\rm in}$
+acima da esfera de fótons ($1{,}5\,r_s$), os raios quase-críticos
+enrolam no vazio e o teto $3^{\alpha/2}$ deixa de ser atingível. O
+default 1,2 é deliberado.}
+
+% =====================================================================
+\section{Traçar raios}
+
+\begin{comando}
+./build/trace
+\end{comando}
+\teste{Sem argumento, imprime todas as chaves de configuração
+reconhecidas. É a documentação canônica do formato.}
+
+\begin{comando}
+./build/trace data/exemplo_terra.cfg saida_terra.csv
+./build/trace data/exemplo_disco.cfg saida_disco.csv
+./build/trace data/exemplo_buraco_negro.cfg saida_bn.csv
+\end{comando}
+\teste{Três casos prontos. O CSV traz 23 colunas:
+\texttt{E\_inf\_GeV, b\_cm, i\_rad, psi\_t\_rad, r\_min\_cm, tau,
+P\_surv, tau\_inbound, tau\_outbound, column\_g\_cm2, path\_cm,
+theta\_min, theta\_max, n\_disk\_crossings, crosses\_matter, captured,
+near\_critical, deflection\_rad, E\_loc\_max\_GeV, winding\_turns,
+tolerance\_met, error, error\_msg}. Os dois ramos aparecem
+separados --- \texttt{tau\_inbound} e \texttt{tau\_outbound} --- e só
+coincidem em perfil esférico.}
+\aviso{\texttt{exemplo\_buraco\_negro.cfg} é caso de \emph{estresse
+numérico}, não cenário físico: põe matéria na esfera de fótons, o que
+não tem órbita estável. Está no cabeçalho do próprio arquivo.}
+
+\begin{comando}
+# raio quase-critico: b logo acima de b_crit = 2.5980762 r_s
+cat > /tmp/critico.cfg <<'EOF'
+metric  = schwarzschild
+r_s_cm  = 1.0e6
+density    = powerlaw_halo
+rho0_g_cm3 = 3.0
+r0_cm      = 1.0e8
+p          = 2.0
+r_in_cm    = 1.2e6
+r_out_cm   = 1.0e10
+xsec       = powerlaw
+sigma0_cm2 = 1e-33
+E0_GeV     = 1e6
+alpha      = 0.36
+E_inf_GeV  = 1e8
+b_min_cm   = 2.5980763e6
+b_max_cm   = 3.0e6
+n_b        = 20
+deflection = 1
+EOF
+./build/trace /tmp/critico.cfg /tmp/critico.csv
+\end{comando}
+\teste{Varre o regime quase-crítico. $\tau$ vai de 199 a 1384 --- diverge
+\emph{logaritmicamente} quando $b \to b_{\rm crit}^+$, e isso é físico:
+o raio enrola na esfera de fótons e o comprimento próprio cresce mesmo.
+A coluna \texttt{r\_min\_cm} tende a $1{,}5\,r_s = 1{,}5\times 10^6$.}
+\aviso{O resumo reporta \texttt{degradados: 7} de 20 --- sete raios não
+atingiram a tolerância. Não é falha silenciosa: a coluna
+\texttt{tolerance\_met} marca quais. Apertar com
+\texttt{rel\_tol = 1e-10} ou aumentar \texttt{max\_evals} resolve, ao
+custo de tempo. Um resultado que não atingiu a tolerância pedida é
+sempre sinalizado, nunca entregue como se tivesse atingido.}
+
+\begin{comando}
+# no mesmo arquivo, trocar as quatro linhas de xsec por:
+#   xsec       = table
+#   table_path = dipole/data/sigma_nuN_CC_GBW.dat
+./build/trace /tmp/critico.cfg /tmp/critico_tabela.csv
+\end{comando}
+\teste{Troca a lei de potência pela tabela real. Com
+\texttt{xsec\_current = total} é \emph{obrigatório} dar
+\texttt{table\_path\_nc} ou \texttt{nc\_to\_cc\_ratio}: não há razão
+NC/CC assumida por default, porque as tabelas do dipole são CC puras.}
+
+% =====================================================================
+\section{Plots}
+
+\begin{comando}
+python3 plots/literatura.py
+\end{comando}
+\teste{Quatro figuras em \texttt{plots/}, PDF vetorial e PNG:
+$\sigma(E)$ contra Gandhi et al.\ (via Formaggio \& Zeller, RMP~84
+(2012) 1307, eqs.~90--91), $\alpha_{\rm eff}$ e o teto,
+$\sigma_{NC}/\sigma_{CC}$, e o HERA.}
+\aviso{As curvas da referência são desenhadas só na faixa em que ela se
+declara válida ($10^{16}$ a $10^{21}$~eV). Estendê-las seria atribuir-lhe
+uma afirmação que não faz, e justo onde a saturação muda a resposta.}
+
+\begin{comando}
+cd dipole && make plot-sigma-nuN plot-scan-x plot-hera-validation
+\end{comando}
+\teste{Alvos de plot do dipole. \texttt{make} sozinho lista os
+disponíveis no início do arquivo.}
+
+% =====================================================================
+\section{O que ainda não funciona}
+
+\begin{comando}
+# NAO faca isto esperando resultado correto:
+#   raio EMITIDO a distancia finita + perfil nao esferico
+#   (density = flared_thin_disk, ou opts.force_ode)
+\end{comando}
+\aviso{A rota de EDO nunca recebeu a topologia de emissão. Para raio
+emitido ela integra os dois ramos como se viesse do infinito: erra por
+fator 7 num caso, lança exceção noutro, e devolve $\tau = 0$ em silêncio
+no caso radial. Perfil esférico com raio vindo do infinito está
+validado; o resto não. Idem para \texttt{transport\_cascade}.}
+
+\begin{comando}
+python3 -c "
+import sys; sys.path.insert(0,'dipole/tests/oracle')
+import dipole_oracle as o
+print('oraculo  %.4e cm2' % o.sigma_cm2(1e9, NlogQ=8, Nlogx=8, Nr=100, Nz=100))"
+
+cd dipole && ./build/sigma_nuN --model GBW --current CC \
+    --NE 1 --logEmin 9 --logEmax 9 --use-F3 0 --quiet
+\end{comando}
+\aviso{Dá $7{,}628\times10^{-33}$ contra $7{,}352\times10^{-33}$ --- 3,8\%
+de diferença. Mas a comparação hoje não isola nada, porque o oráculo
+está atrás de \emph{duas} mudanças estruturais: a regra de densidade de
+nós por década (a quadratura dele ainda usa número fixo) e o conserto do
+extremo $y=1$. E não conhece NC. Ele existe para provar que uma mudança
+no C++ fez o que se pretendia; enquanto estiver divergente, não serve
+para isso. É o problema \textbf{P4} do relatório de estado.}
+
+\vfill
+{\footnotesize\color{cinza}
+Gerado a partir de \texttt{docs/comandos.tex}. Os tempos são medidos
+nesta máquina, com \texttt{OMP\_NUM\_THREADS} entre 4 e 6.
+A máquina tem 15~GB de RAM e 2~GB de swap, sem \texttt{systemd-oomd}:
+estourar a memória a trava em vez de matar o processo.}
+
+\end{document}
