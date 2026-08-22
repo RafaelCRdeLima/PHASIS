@@ -28,7 +28,18 @@ O plano completo, a evidência e o progresso estão em
 | F2 | Quadratura: log r + z resolvido nas duas pontas | concluída |
 | F3 | Tabular F(x,Q²) e desacoplar os laços | concluída |
 | F4 | Densidade de nós e suavidade de σ(E) | concluída |
-| F5–F10 | Convenções, parâmetros, aplicação, regeneração | pendente |
+| F5 | Convenção de α unificada nos três arquivos | concluída |
+| F7 | Política de x grande igual para GBW e IIM | concluída |
+| F8 | Camada de aplicação (índice de coluna em `optical_depth`) | concluída |
+| F9/F10 | Proveniência e regeneração das tabelas | GBW concluída |
+| F6 | Efeito das massas do ajuste | pendente |
+| — | **IIM/bCGC falha a validação contra o HERA** | **bloqueada** |
+
+> **A tabela `sigma_nuN_CC_IIM.dat` não deve ser usada em produção.** Com a quadratura
+> consertada, o bCGC passou a dar ⟨modelo/dado⟩ = 0,10 contra σ_red do HERA — o dado a que ele
+> foi ajustado — e a razão varia de 0,07 a 0,17 ao longo da janela, então não é só normalização.
+> O cabeçalho da tabela traz o aviso e como reproduzir. Resolver exige Rezaeian & Schmidt,
+> PRD **88** (2013) 074016. Ver seção 4, Q2 do plano.
 
 ### Compilar e testar
 
