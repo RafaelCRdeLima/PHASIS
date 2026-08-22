@@ -30,6 +30,25 @@ namespace phasis {
 // e a integral fatoraria; nao fatoramos de proposito, porque na Fase 2 o
 // redshift faz sigma variar ao longo do raio e nada aqui deve mudar.
 // =====================================================================
+// Derivadas do raio em relacao a s, com r = r_turn + s^2.
+//
+//     dl/ds   = 2 r     sqrt( h(r)      f(r_t) / T(r) )
+//     dpsi/ds = (2 b/r) sqrt( h(r) f(r) f(r_t) / T(r) )
+//
+// Exposto para que o teste T13 verifique a identidade
+//
+//     dpsi/dl = b sqrt(f(r)) / r^2
+//
+// contra ESTE codigo, o mesmo que a EDO usa -- e nao contra uma
+// re-derivacao, que poderia repetir o mesmo erro de fator.
+struct RayDerivatives {
+    double dl_ds   = 0.0;
+    double dpsi_ds = 0.0;
+};
+
+RayDerivatives ray_derivatives(const Metric& metric,
+                               double r, double r_turn, double b);
+
 Result trace_ray(const Ray& ray,
                  const Metric& metric,
                  const DensityProfile& profile,

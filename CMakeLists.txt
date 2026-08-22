@@ -21,7 +21,12 @@ endif()
 
 add_compile_options(-O2 -Wall -Wextra)
 
+find_package(OpenMP)
+
+
 add_library(phasis_core
+  src/ode.cpp
+  src/sweep.cpp
   src/integrate.cpp
   src/metric.cpp
   src/density.cpp
@@ -29,6 +34,9 @@ add_library(phasis_core
   src/trace.cpp
 )
 target_include_directories(phasis_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+if(OpenMP_CXX_FOUND)
+  target_link_libraries(phasis_core PUBLIC OpenMP::OpenMP_CXX)
+endif()
 
 add_executable(trace src/trace_main.cpp)
 target_link_libraries(trace PRIVATE phasis_core)
@@ -41,3 +49,7 @@ add_test(NAME phase1 COMMAND test_phase1)
 add_executable(test_phase2 tests/test_phase2.cpp)
 target_link_libraries(test_phase2 PRIVATE phasis_core)
 add_test(NAME phase2 COMMAND test_phase2)
+
+add_executable(test_phase3 tests/test_phase3.cpp)
+target_link_libraries(test_phase3 PRIVATE phasis_core)
+add_test(NAME phase3 COMMAND test_phase3)

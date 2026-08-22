@@ -4,8 +4,8 @@ Profundidade óptica de neutrinos de ultra-alta energia ao longo de geodésicas
 nulas em espaço-tempo estático e esfericamente simétrico, com perfil de matéria
 arbitrário.
 
-**Fases 1–2 (estas):** espaço plano e Schwarzschild. Sem disco, sem
-dependência em θ, sem regeneração.
+**Fases 1–3 (estas):** espaço plano e Schwarzschild, disco com dependência em
+θ, varredura paralela. Sem regeneração.
 
 ## Unidades
 
@@ -128,6 +128,51 @@ exponencial `s = s_split·e^u`, onde `ds/s = du` e a cauda `1/s` vira constante.
 `Result.near_critical` sinaliza `ε ≤ 10⁻⁶`, e `winding_turns` reporta as voltas
 além de uma linha reta. Nunca NaN, nunca truncamento silencioso.
 
+## Fase 3 — dependência em θ
+
+**A geometria.** A métrica continua esfericamente simétrica, então o movimento
+continua **planar** — basta girar o plano orbital. O plano tem normal a ângulo
+`i` do eixo do disco, e `ψ` é a posição azimutal dentro dele, medida da linha de
+nodos:
+
+```
+cos(θ) = sin(i)·sin(ψ)
+```
+
+`i = 0` dá `θ = π/2` sempre (raio no plano do disco); `i = π/2` cruza o disco em
+`ψ = 0` e `π`. O raio é `(E_inf, b, i, ψ_t)`, com `ψ_t` no ponto de retorno.
+
+**O acoplamento, e por que a arquitetura muda.** `ψ(r)` é necessário **dentro**
+do integrando de τ, então as duas quadraturas deixam de ser independentes.
+Sub-quadratura aninhada custaria O(N²) por raio — inviável para 10⁵. Com a mesma
+fatoração das Fases 1–2, os dois integrandos ficam regulares em `s`:
+
+```
+dl/ds   = 2r     ·√( h·f(r_t)/T )
+dψ/ds   = (2b/r) ·√( h·f·f(r_t)/T )
+```
+
+e o estado `(ψ, l, τ_in, τ_out, X_in, X_out)` avança junto num Dormand–Prince
+5(4). Os dois ramos compartilham `ψ_off` e `l`; só o **sinal** com que `ψ_off`
+entra em θ difere — `ψ_t − ψ_off` na entrada, `ψ_t + ψ_off` na saída. Nunca se
+dobra um ramo.
+
+Identidade de checagem cruzada, exata e verificada em T13:
+
+```
+dψ/dl = b·√f / r²
+```
+
+**Perfis:** `FlaredThinDisk` (`ρ = ρ₀(R/R₀)^{−p}·exp(−z²/2H(R)²)`,
+`H = H₀(R/R₀)^q`, defaults p=15/8, q=9/8) e `QuasiSphericalADAF`
+(`ρ ∝ r^{−3/2}`, ainda esférico, ponte entre os dois regimes).
+
+**Paralelismo.** `sweep()` roda `#pragma omp parallel for` sobre um `vector<Ray>`
+plano escrevendo em posições pré-alocadas. Sem RNG, sem estado mutável
+compartilhado, sem I/O no laço — daí o determinismo bit a bit (T18). Duas coisas
+obrigatórias: o corpo do laço fica em `try/catch` (exceção atravessando a
+fronteira de OpenMP é UB), e a agregação é serial, depois do laço.
+
 ## Corrente carregada ou total?
 
 As tabelas de `dipole/` são **CC puras**. Sem regeneração, as duas convenções
@@ -211,7 +256,30 @@ do ponto de retorno:
 
 que no limite `b → 0` vira `2 N_A σ ρ₀ r₀² (1/r_in − 1/r_out)`.
 
-## Um achado no integrador, que vale registrar
+## Testes de aceitação — Fase 3
+
+| | o que verifica | resultado |
+|---|---|---|
+| T12 | rota de EDO ≡ quadratura das Fases 1–2, perfil esférico | ≤ 1,7×10⁻¹³ |
+| T13 | identidade `dψ/dl = b√f/r²` em 150 pontos | 3,6×10⁻¹⁶ |
+| T14 | simetria `z→−z`: `τ(i,ψ_t) = τ(i,ψ_t+π)` | ≤ 6,8×10⁻¹⁵ |
+| T15 | ramos genuinamente diferentes (8 configurações) | 50% a 200% |
+| T16 | `i=0` ⇒ disco ≡ `PowerLawHalo`; limite `H→∞` | ≤ 4,6×10⁻¹³ |
+| T17 | disco em campo plano, forma fechada | ≤ 6,7×10⁻¹³ |
+| T18 | determinismo bit a bit com 1, 2, 4, 8 threads | exato |
+| T18b | exceção não escapa da região paralela | 1000/1000 |
+
+28 verificações, 0 falhas. **T19** (não-regressão): as suites das Fases 1 e 2
+rodadas sem alteração, mesmos dígitos.
+
+Uma nota sobre T16: o enunciado "com `H₀/R₀ = 10⁶` o disco converge para
+`PowerLawHalo` com o mesmo p" só vale **no plano do disco**. Como `ρ` depende de
+`R = r·sin θ`, o limite `H→∞` é `ρ₀(r·sinθ/R₀)^{−p}`, que coincide com
+`PowerLawHalo` apenas em `θ = π/2`. O teste verifica as duas coisas
+separadamente: a identidade exata em `i=0` (para qualquer H, o que é um teste
+forte do mapeamento `(R,z)`) e a convergência para o limite correto em `i=0,9`.
+
+## Dois achados no integrador, que valem registrar
 
 `max_depth` limita a **profundidade** da recursão, não o **número de
 avaliações** — e a recursão é binária, então 50 níveis são 2⁵⁰ folhas. Quando a
@@ -223,8 +291,47 @@ primeira execução de T9c com `rel_tol = 10⁻¹⁴`.
 degradado e **sinalizado** (`Result::tolerance_met = false`) em vez de um
 processo pendurado. Importa mais ainda quando forem 10⁵ geodésicas em paralelo.
 
+**2. Controle de erro relativo puro colapsa o passo.** Na primeira execução de
+T18, 180 de 10 000 raios saíam degradados. O sumário agregado é o que tornou
+isso visível — com 10⁴ linhas ninguém percebe olhando o CSV.
+
+Duas causas, ambas diagnosticadas medindo em vez de adivinhando:
+
+- `abs_tol ≈ 0` no controlador da EDO. O ramo que se afasta do disco tem
+  `τ ~ 10⁻⁸⁰`; com `sc = abs_tol + rel_tol·|y|` isso dá `sc ~ 10⁻⁸⁹`, e qualquer
+  ruído nessa componente produz erro gigante. O passo encolhe até `h_min` por
+  causa de uma quantidade fisicamente irrelevante. Um piso de `10⁻¹⁰` —
+  desprezível para **todas** as componentes deste problema — eliminou 133 dos
+  180.
+- Os 47 restantes falhavam no trecho **vazio** `[0, s_lo]`, não onde há matéria.
+  Os perfis têm corte duro em `r_in`, e o último estágio de Runge–Kutta desse
+  trecho cai exatamente em `r = r_in`, onde `ρ` salta de 0 para finito. Degrau
+  na fronteira: encolher o passo nunca ajuda. Como o trecho não tem matéria por
+  construção, τ e X simplesmente não são integrados ali.
+
+Resultado: 180 → 47 → **0**. Distinguir `hit_min_step` de `hit_max_steps` no
+`OdeStats` foi o que permitiu separar os dois casos — as ações corretivas são
+opostas.
+
+## Um limite que vale saber
+
+Todo raio não capturado tem `r_t ≥ r_ph = 3r_s/2`, e `f(3r_s/2) = 1/3`. Logo
+
+```
+E_loc^max / E_inf = 1/√f(r_t) ≤ √3
+```
+
+O blueshift em Schwarzschild é **limitado por √3, sempre**. Com `σ ∝ E^0.36` isso
+é no máximo `3^0.18 ≈ 1,22` — 22% em σ, e só no ponto de retorno de um raio
+quase-crítico. **A assinatura de RG no observável vem da geometria, não do
+redshift:** o efeito grande é o comprimento de caminho dos raios quase-críticos,
+que diverge logaritmicamente. (Em Kerr o limite muda; não é universal.)
+
+Corolário prático: com `E_inf` dentro da faixa da tabela, `E_loc` nunca sai por
+mais que √3. Meia década de folga no topo da tabela basta.
+
 ## Ainda não implementado
 
-Fase 3: disco espesso com `ρ(r,θ)`, varredura paralela, regeneração NC. O
-caminho não esférico existe e lança `std::logic_error` explícito — a estrutura
-dos dois ramos já está pronta, falta o ângulo `ψ` ao longo do raio.
+Fase 4: regeneração NC — equação de cascata acoplada em `E_inf`, que é a
+variável certa porque é conservada ao longo da geodésica; o redshift então
+aparece só no argumento de σ e no elemento de comprimento.

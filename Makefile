@@ -11,15 +11,15 @@
 # =====================================================================
 
 CXX      ?= g++
-CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -Iinclude -MMD -MP
+CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -fopenmp -Iinclude -MMD -MP
 
 BUILD := build
-SRC   := src/integrate.cpp src/metric.cpp src/density.cpp \
+SRC   := src/ode.cpp src/sweep.cpp src/integrate.cpp src/metric.cpp src/density.cpp \
          src/cross_section.cpp src/trace.cpp
 OBJ   := $(SRC:%.cpp=$(BUILD)/%.o)
 
 .PHONY: all test clean
-all: $(BUILD)/trace $(BUILD)/test_phase1 $(BUILD)/test_phase2
+all: $(BUILD)/trace $(BUILD)/test_phase1 $(BUILD)/test_phase2 $(BUILD)/test_phase3
 
 $(BUILD)/%.o: %.cpp
 	@mkdir -p $(dir $@)
@@ -34,9 +34,13 @@ $(BUILD)/test_phase1: $(OBJ) $(BUILD)/tests/test_phase1.o
 $(BUILD)/test_phase2: $(OBJ) $(BUILD)/tests/test_phase2.o
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-test: $(BUILD)/test_phase1 $(BUILD)/test_phase2
+$(BUILD)/test_phase3: $(OBJ) $(BUILD)/tests/test_phase3.o
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+test: $(BUILD)/test_phase1 $(BUILD)/test_phase2 $(BUILD)/test_phase3
 	@./$(BUILD)/test_phase1
 	@./$(BUILD)/test_phase2
+	@./$(BUILD)/test_phase3
 
 clean:
 	rm -rf $(BUILD)

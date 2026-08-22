@@ -13,6 +13,7 @@
 #include "phasis/cross_section.hpp"
 #include "phasis/density.hpp"
 #include "phasis/metric.hpp"
+#include "phasis/sweep.hpp"
 #include "phasis/trace.hpp"
 #include "phasis/units.hpp"
 
@@ -84,7 +85,9 @@ Chaves do arquivo de configuracao (chave = valor, '#' comenta):
     M_solar     = 10.0                      (schwarzschild) OU
     r_s_cm      = 2.95325e6                 (schwarzschild)
 
-  density       = uniform_ball | powerlaw_halo
+  density       = uniform_ball | powerlaw_halo | flared_thin_disk | adaf
+    H0_cm       = 1e6                       (flared_thin_disk)
+    q           = 1.125                     (flared_thin_disk)
     rho0_g_cm3  = 5.51
     R_cm        = 6.371e8                   (uniform_ball)
     r0_cm       = 1e8                       (powerlaw_halo)
@@ -178,6 +181,21 @@ int main(int argc, char** argv)
             profile = std::make_unique<UniformBall>(
                 getd(cfg, "rho0_g_cm3", units::earth_mean_density),
                 getd(cfg, "R_cm", units::earth_radius_cm));
+        } else if (dname == "flared_thin_disk") {
+            profile = std::make_unique<FlaredThinDisk>(
+                getd(cfg, "rho0_g_cm3", 1.0),
+                getd(cfg, "R0_cm", 1.0e8),
+                getd(cfg, "H0_cm", 1.0e6),
+                getd(cfg, "r_in_cm", 1.0e7),
+                getd(cfg, "r_out_cm", 1.0e9),
+                getd(cfg, "p", 15.0/8.0),
+                getd(cfg, "q", 9.0/8.0));
+        } else if (dname == "adaf") {
+            profile = std::make_unique<QuasiSphericalADAF>(
+                getd(cfg, "rho0_g_cm3", 1.0),
+                getd(cfg, "R0_cm", 1.0e8),
+                getd(cfg, "r_in_cm", 1.0e7),
+                getd(cfg, "r_out_cm", 1.0e9));
         } else if (dname == "powerlaw_halo") {
             profile = std::make_unique<PowerLawHalo>(
                 getd(cfg, "rho0_g_cm3", 1.0),
@@ -245,12 +263,16 @@ int main(int argc, char** argv)
         // ---- grades ---------------------------------------------------
         const auto Es = grade(cfg, "E_inf_GeV", "E_min_GeV", "E_max_GeV", "n_E", true, 1.0e9);
         const auto bs = grade(cfg, "b_cm", "b_min_cm", "b_max_cm", "n_b", false, 0.0);
+        const auto is = grade(cfg, "i_rad", "i_min_rad", "i_max_rad", "n_i", false, 0.0);
+        const auto ps = grade(cfg, "psi_t_rad", "psi_t_min_rad", "psi_t_max_rad",
+                              "n_psi_t", false, 0.0);
 
         IntegratorOpts opts;
         opts.rel_tol   = getd(cfg, "rel_tol", 1.0e-8);
         opts.max_depth = static_cast<int>(getd(cfg, "max_depth", 50));
         opts.max_evals = static_cast<long>(getd(cfg, "max_evals", 2.0e6));
         opts.want_deflection = (getd(cfg, "deflection", 1.0) != 0.0);
+        opts.ode_rel_tol = getd(cfg, "ode_rel_tol", opts.rel_tol);
 
         // ---- saida ----------------------------------------------------
         std::ostream* out = &std::cout;
@@ -271,26 +293,54 @@ int main(int argc, char** argv)
                  << " cm  r_photon=" << sw->r_photon() << " cm\n";
         }
         *out << "# unidades: cm, g/cm^3, cm^2, GeV\n";
-        *out << "E_inf_GeV,b_cm,r_min_cm,tau,P_surv,column_g_cm2,path_cm,"
+        *out << "E_inf_GeV,b_cm,i_rad,psi_t_rad,r_min_cm,tau,P_surv,"
+                "tau_inbound,tau_outbound,column_g_cm2,path_cm,"
+                "theta_min,theta_max,n_disk_crossings,"
                 "crosses_matter,captured,near_critical,deflection_rad,"
-                "E_loc_max_GeV,winding_turns,tolerance_met\n";
+                "E_loc_max_GeV,winding_turns,tolerance_met,error,error_msg\n";
         out->precision(12);
 
-        for (double E : Es) {
-            for (double b : bs) {
-                Ray ray; ray.E_inf_GeV = E; ray.b_cm = b;
-                const Result r = trace_ray(ray, *metric, *profile, *xsec, opts);
-                *out << E << "," << b << "," << r.r_min_cm << ","
-                     << r.tau << "," << r.P_surv << ","
-                     << r.column_density << "," << r.path_length_cm << ","
-                     << (r.crosses_matter ? 1 : 0) << ","
-                     << (r.captured ? 1 : 0) << ","
-                     << (r.near_critical ? 1 : 0) << ","
-                     << r.deflection_rad << "," << r.E_loc_max_GeV << ","
-                     << r.winding_turns << ","
-                     << (r.tolerance_met ? 1 : 0) << "\n";
-            }
+        // Monta a grade plana e varre em paralelo. trace_ray e funcao
+        // pura, entao o unico cuidado e nao deixar excecao escapar da
+        // regiao OpenMP -- o que sweep() faz.
+        std::vector<Ray> raios;
+        raios.reserve(Es.size()*bs.size()*is.size()*ps.size());
+        for (double E : Es)
+            for (double b : bs)
+                for (double i : is)
+                    for (double pt : ps) {
+                        Ray r;
+                        r.E_inf_GeV = E; r.b_cm = b;
+                        r.inclination_rad = i; r.psi_turn_rad = pt;
+                        raios.push_back(r);
+                    }
+
+        std::vector<Result> res;
+        const SweepSummary resumo =
+            sweep(raios, *metric, *profile, *xsec, opts, res);
+
+        for (std::size_t k = 0; k < raios.size(); ++k) {
+            const Ray& ray = raios[k];
+            const Result& r = res[k];
+            *out << ray.E_inf_GeV << "," << ray.b_cm << ","
+                 << ray.inclination_rad << "," << ray.psi_turn_rad << ","
+                 << r.r_min_cm << "," << r.tau << "," << r.P_surv << ","
+                 << r.tau_inbound << "," << r.tau_outbound << ","
+                 << r.column_density << "," << r.path_length_cm << ","
+                 << r.theta_min_rad << "," << r.theta_max_rad << ","
+                 << r.n_disk_crossings << ","
+                 << (r.crosses_matter ? 1 : 0) << ","
+                 << (r.captured ? 1 : 0) << ","
+                 << (r.near_critical ? 1 : 0) << ","
+                 << r.deflection_rad << "," << r.E_loc_max_GeV << ","
+                 << r.winding_turns << ","
+                 << (r.tolerance_met ? 1 : 0) << ","
+                 << (r.error ? 1 : 0) << ",\"" << r.error_msg << "\"\n";
         }
+
+        // Com 1e5 raios ninguem le linha por linha: o sumario vai para o
+        // stderr, separado do CSV.
+        std::cerr << "\n=== resumo da varredura ===\n" << resumo.to_string();
 
         if (argc >= 3) std::cerr << "escrito: " << argv[2] << "\n";
         return 0;

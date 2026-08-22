@@ -26,6 +26,15 @@ struct IntegratorOpts {
     // Limiar de eps = T(r_t)/r_t abaixo do qual o raio e tratado como
     // quase-critico. Ver trace.cpp.
     double near_critical_eps = 1.0e-6;
+
+    // Forcar a rota de EDO mesmo com perfil esferico. Existe para o teste
+    // T12, que confronta as duas rotas -- sem ele a rota nova nunca
+    // seria exercitada num caso com resposta analitica conhecida.
+    bool   force_ode = false;
+
+    // Tolerancia da EDO (rota nao esferica).
+    double ode_rel_tol = 1.0e-12;
+    long   ode_max_steps = 2000000;
 };
 
 struct QuadResult {

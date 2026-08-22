@@ -75,6 +75,67 @@ private:
     double rho0_, r0_, p_, r_in_, r_out_;
 };
 
+// ---------------------------------------------------------------------
+// Disco fino com abertura (flared), em coordenadas cilindricas
+//
+//     R = r sin(theta),   z = r cos(theta)
+//
+//     rho(R,z) = rho_0 (R/R_0)^(-p) exp( -z^2 / (2 H(R)^2) )
+//     H(R)     = H_0 (R/R_0)^q
+//
+// zero fora de [r_in, r_out] no raio ESFERICO r.
+//
+// Defaults p = 15/8, q = 9/8: regiao externa de Shakura-Sunyaev.
+//
+// E o primeiro perfil com is_spherical() == false. A partir dele os dois
+// ramos do raio deixam de ser iguais.
+class FlaredThinDisk final : public DensityProfile {
+public:
+    FlaredThinDisk(double rho0, double R0, double H0,
+                   double r_in, double r_out,
+                   double p = 15.0/8.0, double q = 9.0/8.0)
+        : rho0_(rho0), R0_(R0), H0_(H0), r_in_(r_in), r_out_(r_out), p_(p), q_(q) {}
+
+    double rho(double r, double theta) const override;
+
+    double r_support_min() const override { return r_in_; }
+    double r_support_max() const override { return r_out_; }
+    bool   is_spherical()  const override { return false; }
+    std::string name() const override { return "FlaredThinDisk"; }
+
+    double H_of_R(double R) const;
+
+    double rho0() const { return rho0_; }
+    double R0()   const { return R0_; }
+    double H0()   const { return H0_; }
+    double p()    const { return p_; }
+    double q()    const { return q_; }
+
+private:
+    double rho0_, R0_, H0_, r_in_, r_out_, p_, q_;
+};
+
+// ---------------------------------------------------------------------
+// ADAF quase-esferico: rho = rho_0 (r/R_0)^(-3/2), sem estrutura vertical.
+//
+// Ponte entre o caso esferico e o disco: mesma lei radial de um fluxo de
+// acrecao dominado por adveccao, mas ainda com is_spherical() == true,
+// entao serve de controle contra os perfis das Fases 1-2.
+class QuasiSphericalADAF final : public DensityProfile {
+public:
+    QuasiSphericalADAF(double rho0, double R0, double r_in, double r_out)
+        : rho0_(rho0), R0_(R0), r_in_(r_in), r_out_(r_out) {}
+
+    double rho(double r, double) const override;
+
+    double r_support_min() const override { return r_in_; }
+    double r_support_max() const override { return r_out_; }
+    std::string name() const override { return "QuasiSphericalADAF"; }
+
+private:
+    double rho0_, R0_, r_in_, r_out_;
+};
+
 } // namespace phasis
 
 #endif
