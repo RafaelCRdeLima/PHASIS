@@ -6,8 +6,8 @@ CXX := g++
 
 # -MMD -MP gera .d com as dependencias de header. Sem isso, editar
 # include/*.hpp NAO dispara recompilacao -- e a campanha edita headers.
-CXXFLAGS := -O3 -std=c++17 -Wall -Wextra -MMD -MP -Iinclude -I$(CONDA_PREFIX)/include $(shell lhapdf-config --cflags)
-LDFLAGS  := -L$(CONDA_PREFIX)/lib $(shell lhapdf-config --libs)
+CXXFLAGS := -O3 -std=c++17 -Wall -Wextra -fopenmp -MMD -MP -Iinclude -I$(CONDA_PREFIX)/include $(shell lhapdf-config --cflags)
+LDFLAGS  := -fopenmp -L$(CONDA_PREFIX)/lib $(shell lhapdf-config --libs)
 
 
 # =====================================================
@@ -214,7 +214,7 @@ sigma-nuN: dirs $(SIGMA_NUN)
 		--pdf-set $(PDF_SET) \
 		--beam $(BEAM)
 
-$(SIGMA_NUN): $(BUILD_DIR)/sigma_nuN.o $(BUILD_DIR)/wavefunctions.o $(BUILD_DIR)/dipole_models.o $(BUILD_DIR)/integrals.o $(BUILD_DIR)/weak_structure_functions.o
+$(SIGMA_NUN): $(BUILD_DIR)/sigma_nuN.o $(BUILD_DIR)/wavefunctions.o $(BUILD_DIR)/dipole_models.o $(BUILD_DIR)/integrals.o $(BUILD_DIR)/structure_table.o $(BUILD_DIR)/sigma_nuN_core.o $(BUILD_DIR)/weak_structure_functions.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(BUILD_DIR)/sigma_nuN.o: $(SRC_DIR)/sigma_nuN.cpp
@@ -259,6 +259,17 @@ $(TEST_QUAD): $(BUILD_DIR)/test_quadrature.o $(BUILD_DIR)/wavefunctions.o $(BUIL
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(BUILD_DIR)/test_quadrature.o: $(SRC_DIR)/test_quadrature.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+TEST_TABLE := $(BUILD_DIR)/test_table
+
+test-table: dirs $(TEST_TABLE)
+	LD_LIBRARY_PATH=$(CONDA_PREFIX)/lib:$$LD_LIBRARY_PATH $(TEST_TABLE)
+
+$(TEST_TABLE): $(BUILD_DIR)/test_table.o $(BUILD_DIR)/wavefunctions.o $(BUILD_DIR)/dipole_models.o $(BUILD_DIR)/integrals.o $(BUILD_DIR)/structure_table.o $(BUILD_DIR)/sigma_nuN_core.o $(BUILD_DIR)/weak_structure_functions.o
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(BUILD_DIR)/test_table.o: $(SRC_DIR)/test_table.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 plot-sigma-nuN: sigma-nuN

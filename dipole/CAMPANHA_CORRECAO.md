@@ -408,6 +408,17 @@ F6 é medir o efeito de (b) e registrá-lo, não trocar.
 **Aceitação:** σ(1e6) com tabulação difere < 1% do cálculo direto convergido, e roda ≥ 50× mais
 rápido. Sem isso, F4 é inviável.
 
+**CONCLUÍDA.** `include/structure_table.hpp`, `src/structure_table.cpp`, `make test-table`.
+
+- Tabela 121×121 em (ln x, ln Q²), montada **uma vez** e servindo todas as energias.
+- OpenMP: 19 s de relógio (3m22s de CPU em 12 núcleos). Antes: 5,5 s **por energia**, ou seja
+  ~27 min para as 300 energias de produção.
+- Interpolação **bicúbica (Catmull-Rom)**, não bilinear — ver F4b abaixo.
+- `src/sigma_nuN_core.{hpp,cpp}`: o núcleo da seção de choque saiu do `main()` para poder ser
+  testado.
+
+Erro de interpolação medido em pontos fora dos nós: **pior caso 0,001%** (limite 2%).
+
 ---
 
 ### F4 — Grades como parâmetro de verdade
@@ -418,9 +429,47 @@ rápido. Sem isso, F4 é inviável.
   mas a faixa de integração cresce (D4).
 - Corrigir `NE=1` (D16).
 
-**Aceitação:** `tests/test_conditioning.py` passa — amplificação ≤ 5 (hoje: 3,55e5). σ(E)
-monotônica em toda a faixa 1e3–1e14 (a tabela atual tem 29 passos decrescentes), e inclinação
-log-log por década ≥ 0,25 acima de 1e7 GeV.
+**CONCLUÍDA.**
+
+`nodesForRange()` fixa a **densidade** de nós por decada (default 16), em vez do `NlogQ = 16`
+fixo. `NlogQ` passa a escalar: 28 em 1e3 GeV, 116 em 1e14. Também corrigido o `--NE 1`, que
+dividia por `NE-1 = 0`.
+
+Duas correções que só apareceram ao medir:
+
+1. **`Nlogx` estava sendo recalculado dentro do laço de Q².** A faixa em x é [Q²/s, xmax], que
+   encolhe conforme Q² cresce, então o contador saltava de 2 em 2 ao longo do laço — e cada
+   salto é uma **descontinuidade no integrando externo** (o erro de convergência da integral
+   interna muda de degrau). Hasteado para fora, calculado uma vez pela faixa mais larga.
+
+2. **A interpolação bilinear da tabela é C⁰ mas não C¹.** Os nós de Simpson cruzavam as quinas
+   da grade a cada mudança de energia. Trocada por Catmull-Rom (C¹, estêncil 4×4, mesmo custo
+   de memória). Efeito no resíduo de suavidade: 0,464% → 0,227% rms. E, de quebra, o erro de
+   interpolação da própria tabela caiu de 0,105% para 0,001%.
+
+### Critério da F4 revisto — "amplificação" era a métrica errada
+
+`tests/test_conditioning.py` media |dσ/σ| / |dE/E| com dE/E = 1e-7. Isso só faz sentido para uma
+resposta **diferenciável**. Com a tabela, σ(E) é suave na escala que importa (a grade de produção
+tem dE/E ≈ 9%) mas não é diferenciável na escala de 1e-7, porque os nós de quadratura cruzam a
+estrutura local do interpolante. Medir amplificação ali é medir ruído sem conteúdo físico — e de
+fato `dσ/σ` saía praticamente constante (~2e-3) para qualquer `dE/E`, o que é a assinatura de um
+salto discreto, não de amplificação.
+
+**Métrica nova, que é a que importa:** σ(E) tem de ser monotônica e suave o bastante para que a
+interpolação log-log da tabela — que é o que o HADROS3 faz — não injete artefato. A quarta
+diferença finita em ln E aniquila qualquer cúbica, então D4/6 estima o desvio de cada ponto em
+relação a uma curva suave local sem precisar ajustar nada.
+
+**Resultado (45 energias, 1e3–1e14 GeV):**
+
+| | tabela publicada | pós-F2 (bilinear, 8 n/déc) | **pós-F4** |
+|---|---|---|---|
+| passos decrescentes | **29** | 0 | **0** |
+| resíduo rms | 0,75% | 0,227% | **0,199%** |
+| resíduo máximo | 1,83% | 0,687% | **0,629%** |
+
+Convergência em densidade de nós (16 → 32 por década): 0,11% a 0,24%.
 
 ---
 

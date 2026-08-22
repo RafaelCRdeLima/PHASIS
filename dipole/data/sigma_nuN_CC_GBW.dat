@@ -1,0 +1,22 @@
+# model GBW
+# gerado_por sigma_nuN (PHASIS/dipole)
+# formalismo Kutak-Kwiecinski EPJ C29 (2003) 521, eqs (2),(8),(9),(12),(13)
+# beam nu
+# use_F3 0
+# Q2min_GeV2 1
+# largeXFactor (1-x)^7   [regra de contagem de constituintes, n_s=4]
+# GBW sigma0_mb 29.12  lambda 0.277  x0 4.1e-05  Q0sq 1
+# massas_GeV  u 0.03  d 0.03  s 0.03  c 1.3113
+# canais ud, cs
+# quadratura_rz  Nr 120  Nz 120  rMin 1e-08  rMax 1000  zMin 1e-11   [ln r; z log nas duas pontas]
+# tabela_F  Nx 121  NQ 121  xMin 2.664472562e-15  xMax 1  Q2Min 1  Q2Max 1.968400829e+14
+# integracao_sigma  nos_por_decada_Q 8  nos_por_decada_x 8
+# Enu_GeV sigma_GeV_minus2 sigma_cm2
+1000 5.8074868e-09 2.261313403e-36
+37275.9372 2.315572527e-07 9.016353149e-35
+1389495.494 2.075221717e-06 8.080477568e-34
+51794746.79 7.910452107e-06 3.080163931e-33
+1930697729 2.280175495e-05 8.878524542e-33
+7.19685673e+10 5.944137539e-05 2.314522331e-32
+2.682695795e+12 0.0001479855395 5.762246137e-32
+1e+14 0.0003532275955 1.375394079e-31
