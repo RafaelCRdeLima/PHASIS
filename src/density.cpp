@@ -45,4 +45,30 @@ double QuasiSphericalADAF::rho(double r, double) const
     return rho0_*std::pow(r/R0_, -1.5);
 }
 
+// =====================================================================
+ProfileRegistry& ProfileRegistry::instance()
+{
+    static ProfileRegistry r;
+    return r;
+}
+
+void ProfileRegistry::add(std::string nome, Factory f)
+{
+    itens_.emplace_back(std::move(nome), std::move(f));
+}
+
+// Auto-registro. Os parametros sao arbitrarios: o teste de borda so
+// olha o comportamento de rho NAS BORDAS do suporte, nao os valores.
+PHASIS_REGISTER_PROFILE(UniformBall,
+    std::make_shared<UniformBall>(3.7, 4.2e8));
+
+PHASIS_REGISTER_PROFILE(PowerLawHalo,
+    std::make_shared<PowerLawHalo>(2.5, 1.0e8, 2.0, 3.0e7, 9.0e8));
+
+PHASIS_REGISTER_PROFILE(FlaredThinDisk,
+    std::make_shared<FlaredThinDisk>(1.0e3, 1.0e8, 3.0e6, 8.86e6, 1.0e10));
+
+PHASIS_REGISTER_PROFILE(QuasiSphericalADAF,
+    std::make_shared<QuasiSphericalADAF>(1.0e3, 1.0e8, 1.0e7, 1.0e9));
+
 } // namespace phasis

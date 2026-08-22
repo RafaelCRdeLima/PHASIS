@@ -9,6 +9,7 @@
 #include "phasis/integrate.hpp"
 #include "phasis/metric.hpp"
 #include "phasis/ray.hpp"
+#include "phasis/cross_section.hpp"
 
 namespace phasis {
 
@@ -212,6 +213,63 @@ private:
     bool no_regeneration_ = false;
 };
 
+// ---------------------------------------------------------------------
+// dsigma_NC/dy lida de tabela, com METADADOS OBRIGATORIOS.
+//
+// Por que obrigatorios: nada neste projeto forca a explicitar a
+// convencao, porque quem escreve e quem le sao o mesmo autor. E a
+// convencao e onde mora o fator 2 -- ja mordeu uma vez, no acoplamento
+// NC do dipole. O leitor EXIGE cada chave e valida `convention_y` e
+// `current` contra o que o chamador declara esperar. Ausencia de
+// qualquer uma e excecao, nunca default.
+//
+// Grade log(E) x log(y), interpolacao bilinear em log-log. Sem
+// extrapolacao. Uma lei de potencia em qualquer dos eixos e reta neste
+// plano, logo e reproduzida EXATAMENTE -- e o que o round-trip verifica.
+class TableDifferentialCrossSection final : public DifferentialCrossSection {
+public:
+    struct Expect {
+        std::string convention_y = "(E_in - E_out)/E_in";
+        std::string current      = "NC";
+    };
+
+    TableDifferentialCrossSection(const std::string& path,
+                                  const Expect& esperado,
+                                  std::shared_ptr<const CrossSection> sigma_cc);
+
+    double dsigma_nc_dy(double E_GeV, double y) const override;
+    double sigma_nc(double E_GeV) const override;
+    double sigma_cc(double E_GeV) const override;
+    std::string name() const override { return "TableDifferential[" + path_ + "]"; }
+
+    const std::string& meta(const std::string& chave) const;
+
+private:
+    std::string path_;
+    std::vector<double> lnE_, lny_;
+    std::vector<double> lnD_;      // ln(dsigma/dy), nE x nY
+    std::vector<double> snc_;      // sigma_nc por no de E
+    std::shared_ptr<const CrossSection> cc_;
+    std::vector<std::pair<std::string,std::string>> meta_;
+};
+
+// Escreve uma tabela no formato acima a partir de um kernel analitico.
+// Existe para o round-trip: valida o LEITOR sem depender do dipole.
+void write_dsigma_table(const std::string& path,
+                        const DifferentialCrossSection& xsec,
+                        double E_min, double E_max, int nE,
+                        double y_min, int nY,
+                        const std::string& gerado_por);
+
+// Z_disc calculado SO para o bin do topo, sem montar a matriz N x N.
+//
+// T24 precisa varrer bins/decada por duas decadas, e a construcao
+// completa do kernel e O(N^2) integrais -- inviavel em N ~ 4000. Esta
+// rota e O(N).
+double z_discrete_row(const EnergyGrid& grid,
+                      const DifferentialCrossSection& xsec,
+                      double gamma);
+
 // =====================================================================
 // Transporte do espectro ao longo de uma geodesica.
 //
@@ -240,7 +298,13 @@ CascadeResult transport_cascade(const std::vector<double>& phi0,
                                 const Ray& ray,
                                 const Metric& metric,
                                 const DensityProfile& profile,
-                                const IntegratorOpts& opts);
+                                const IntegratorOpts& opts,
+                                // T25: congela a matriz em E_inf, ignorando o
+                                // redshift no argumento de sigma. Mantem a
+                                // GEOMETRIA identica -- comparar contra
+                                // Minkowski mudaria o caminho tambem, e a
+                                // diferenca medida nao seria so do redshift.
+                                bool freeze_redshift = false);
 
 } // namespace phasis
 

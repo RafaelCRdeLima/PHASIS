@@ -402,11 +402,88 @@ não há; na Fase 4 o ramo de entrada **começava** em `r_out`, onde `UniformBal
 devolvia zero por usar `r < R` em vez de `r <= R`. Está documentado como
 invariante em `DensityProfile`.
 
+### Etapas 4–5
+
+| | resultado |
+|---|---|
+| borda: invariante genérico varrendo o **registro** de perfis | 4/4 |
+| **T23** exp(nLM) vs EDO, condição inicial de **bin único** | ≤ 1,0×10⁻¹⁵ |
+| **T23b** cada `K_ij` lida pela expansão de L curto | 3,4×10⁻¹⁰ |
+| **T24** ordem observada por janela, `ConstantY` e `PowerLawY` | ver abaixo |
+| **T25** redshift: `M(E_loc)` vs `M` congelada, mesma geometria | 4,1% em τ |
+| round-trip do leitor + metadados obrigatórios | 1,8×10⁻¹⁴ |
+
+**T23 usa bin único, não lei de potência**, e a razão é estrutural: a lei de
+potência é autovetor **exato** do operador discreto, então T22 testa **uma**
+direção num espaço de N dimensões. Um erro que preserve `σ_eff` para leis de
+potência mas erre a distribuição entre bins passaria limpo. T23b vai além e lê
+**cada entrada** `K_ij` — a identidade de consistência só testa `Σ_i K_ij`.
+
+**T24 — a transição prevista aparece onde deve.**
+
+```
+    ConstantY  (suave)
+    n/dec    ln(rho)     erro rel        ordem local
+    5        0.4605      2.5936e-02         -
+    40       0.0576      4.1406e-04       1.999
+    640      0.0036      1.6080e-06       2.007        ordem media 1.997
+
+    PowerLawY  beta = 1,  y_min = 0.05
+    n/dec    ln(rho)     erro rel        ordem local  regime
+    5        0.4605      5.6231e-02         -         sub-resolvido
+    20       0.1151      4.4068e-03       1.856       sub-resolvido
+    40       0.0576      9.8379e-04       2.163       sub-resolvido
+    80       0.0288      1.3147e-04       2.904       corte resolvido
+    640      0.0036      1.5982e-06       3.474       corte resolvido
+
+      ordem sub-resolvida (n/dec  5 ->  20) : 1.837
+      ordem resolvida     (n/dec 160-> 640) : 2.915
+      transicao prevista em ln(rho) = y_min = 0.050  =>  n/dec = 46
+```
+
+A grade em `y` induzida é `y_k = 1 − ρ^{−k}`, com espaçamento `≈ ln ρ` perto de
+zero. A transição cai entre n/déc 40 (`ln ρ = 0,0576 > y_min`) e 80
+(`ln ρ = 0,0288 < y_min`) — exatamente onde `ln ρ` cruza `y_min`. Ajustar uma
+única reta global daria um expoente intermediário sem significado.
+
+*Ressalva honesta:* no regime resolvido a ordem **local** oscila (0,53; 2,36;
+3,47). O ajuste em janela larga dá 2,92, acima de 2 — sinal de que ali duas
+contribuições de erro com sinais opostos se cancelam parcialmente. O que o teste
+cobra é a **melhora** ao cruzar `y_min`, não um valor específico.
+
+**T25 mede τ, não P** — e isso qualifica uma afirmação anterior deste README:
+
+```
+  b/r_s   E_loc/E_inf   tau      dif em tau   dif em P
+  3.0     1.34730       9.654    0.0406       0.3239
+  10.0    1.05747       3.749    0.0131       0.0479
+  100.0   1.00506       0.340    0.0012       0.0004
+```
+
+O limite `√3` controla **σ**: a diferença em τ é 4,1% no pior caso, dentro do
+teto absoluto `3^0.18 − 1 = 21,9%`. Mas **P não herda esse teto** — é amplificado
+por `exp(δ·τ)`, e em τ ≈ 10 vira 32%. A frase "a assinatura de RG vem da
+geometria, não do redshift" vale na **janela observável** τ ∈ [0,3; 5]; fora
+dela, não.
+
+**Metadados obrigatórios no formato de tabela.** As nove chaves
+(`convention_y`, `target`, `projectile`, `current`, `units_sigma`, `units_E`,
+`M_Z_GeV`, `dipole_model`, `generated_by`) são exigidas: remover qualquer uma faz
+o leitor lançar (9/9 verificadas), e `convention_y`/`current` são validadas
+contra o que o chamador declara esperar. Não é burocracia — nada neste projeto
+força a explicitar a convenção, porque quem escreve e quem lê é o mesmo autor, e
+a convenção é onde mora o fator 2.
+
+### O invariante de borda virou teste, não comentário
+
+Duas ocorrências em fases diferentes é assinatura estrutural. O registro de
+perfis é **auto-registrável** (`PHASIS_REGISTER_PROFILE`), e o teste varre o
+registro comparando `ρ` na borda com `ρ` um passo para dentro. Perfil novo entra
+no teste sozinho — inclusive os da Fase 5.
+
 ## Ainda não implementado
 
-Fase 4, etapas 4–5: **T23** (exponencial de matriz como rota independente),
-**T24** (convergência de grade com expoente reportado), **T25** (magnitude do
-redshift), round-trip do leitor de tabela, e a saída CSV do espectro.
+Saída CSV do espectro transmitido.
 
 O `TableDifferentialCrossSection` ainda não existe: as tabelas de `dσ_NC/dy` do
 `dipole` **também não**. Ver a nota de bloqueio abaixo.

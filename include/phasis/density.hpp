@@ -1,7 +1,11 @@
 #ifndef PHASIS_DENSITY_HPP
 #define PHASIS_DENSITY_HPP
 
+#include <functional>
+#include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace phasis {
 
@@ -154,6 +158,38 @@ public:
 private:
     double rho0_, R0_, r_in_, r_out_;
 };
+
+// =====================================================================
+// Registro de perfis, para o teste generico de borda.
+//
+// Duas ocorrencias do bug de borda em fases diferentes e assinatura de
+// problema ESTRUTURAL, e comentario nao impede a terceira. O registro
+// e AUTO-REGISTRAVEL: cada perfil se inscreve por um objeto estatico, e
+// o teste varre o registro. Um perfil novo entra no teste sozinho, sem
+// que ninguem lembre de adiciona-lo a uma lista.
+// =====================================================================
+class ProfileRegistry {
+public:
+    using Factory = std::function<std::shared_ptr<DensityProfile>()>;
+
+    static ProfileRegistry& instance();
+
+    void add(std::string nome, Factory f);
+    const std::vector<std::pair<std::string, Factory>>& all() const { return itens_; }
+
+private:
+    std::vector<std::pair<std::string, Factory>> itens_;
+};
+
+struct ProfileRegistrar {
+    ProfileRegistrar(std::string nome, ProfileRegistry::Factory f) {
+        ProfileRegistry::instance().add(std::move(nome), std::move(f));
+    }
+};
+
+#define PHASIS_REGISTER_PROFILE(tag, expr)                                  \
+    static const ::phasis::ProfileRegistrar phasis_reg_##tag(              \
+        #tag, []() -> std::shared_ptr<::phasis::DensityProfile> { return expr; })
 
 } // namespace phasis
 

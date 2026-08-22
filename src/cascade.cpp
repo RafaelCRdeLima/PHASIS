@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <fstream>
 #include <sstream>
 #include <stdexcept>
 
@@ -291,6 +292,7 @@ struct CascadeCtx {
     bool   inbound;      // ramo de entrada: psi = psi_t - psi_off
     double s_hi;
     bool   reversed;     // integra u = s_hi - s
+    bool   freeze;       // T25: usa E_inf no lugar de E_loc
 
     // grade de E_inf dos bins, so os centros
     std::vector<double> Ec;
@@ -326,7 +328,7 @@ struct CascadeCtx {
         if (!(rho > 0.0)) return;
 
         const double nN    = units::nucleons_per_gram*rho;
-        const double boost = 1.0/std::sqrt(metric.f(r));   // E_loc = E_inf * boost
+        const double boost = freeze ? 1.0 : 1.0/std::sqrt(metric.f(r));
 
         // coluna (componente N+2)
         dy[static_cast<std::size_t>(N)+2] = rho*dl;
@@ -364,7 +366,8 @@ CascadeResult transport_cascade(const std::vector<double>& phi0,
                                 const Ray& ray,
                                 const Metric& metric,
                                 const DensityProfile& profile,
-                                const IntegratorOpts& opts)
+                                const IntegratorOpts& opts,
+                                bool freeze_redshift)
 {
     CascadeResult out;
     const int N = kernel.grid().n();
@@ -416,7 +419,7 @@ CascadeResult transport_cascade(const std::vector<double>& phi0,
     CascadeCtx ctx{kernel, metric, profile,
                    r_turn, f_turn, ray.b_cm, std::sin(ray.inclination_rad),
                    ray.psi_turn_rad, ray.E_inf_GeV, N, profile.is_spherical(),
-                   true, s_hi, true, Ec};
+                   true, s_hi, true, freeze_redshift, Ec};
 
     auto roda = [&](double a, double b2) {
         if (!(b2 > a)) return;
@@ -448,6 +451,206 @@ CascadeResult transport_cascade(const std::vector<double>& phi0,
     out.leakage_total = y[static_cast<std::size_t>(N)];
     out.column_g_cm2  = y[static_cast<std::size_t>(N)+2];
     return out;
+}
+
+
+// =====================================================================
+double z_discrete_row(const EnergyGrid& grid,
+                      const DifferentialCrossSection& xsec,
+                      double gamma)
+{
+    const int j = grid.n() - 1;
+    const double Ej   = grid.center(j);
+    const double rho  = grid.ratio();
+    const double Eref = grid.center(0);
+    const double sref = xsec.sigma_nc(Eref);
+    if (!(sref > 0.0)) return 0.0;
+
+    const std::vector<double> quebras = xsec.y_breakpoints();
+    const double abs_piece = 1.0e-16*std::fabs(sref);
+
+    double z = 0.0;
+    for (int i = 0; i <= j; ++i) {
+        double y0 = std::max(0.0, 1.0 - grid.edge(i + 1)/Ej);
+        double y1 = std::min(1.0, 1.0 - grid.edge(i)/Ej);
+        if (!(y1 > y0)) continue;
+        const double g = integra_g(xsec, Eref, y0, y1, abs_piece, quebras)/sref;
+        if (g == 0.0) continue;
+        z += g*std::pow(rho, -(j - i)*(gamma - 1.0));
+    }
+    return z;
+}
+
+
+// =====================================================================
+namespace {
+
+const char* kChavesObrigatorias[] = {
+    "convention_y", "target", "projectile", "current",
+    "units_sigma", "units_E", "M_Z_GeV", "dipole_model", "generated_by"
+};
+
+} // namespace
+
+void write_dsigma_table(const std::string& path,
+                        const DifferentialCrossSection& xsec,
+                        double E_min, double E_max, int nE,
+                        double y_min, int nY,
+                        const std::string& gerado_por)
+{
+    std::ofstream out(path);
+    if (!out) throw std::runtime_error("write_dsigma_table: nao consegui escrever " + path);
+
+    out << "# convention_y = (E_in - E_out)/E_in\n"
+        << "# target       = isoscalar_nucleon\n"
+        << "# projectile   = nu\n"
+        << "# current      = NC\n"
+        << "# units_sigma  = cm^2\n"
+        << "# units_E      = GeV\n"
+        << "# M_Z_GeV      = 91.1876\n"
+        << "# dipole_model = " << xsec.name() << "\n"
+        << "# generated_by = " << gerado_por << "\n"
+        << "# E_GeV y dsigma_dy_cm2\n";
+    out.precision(17);
+
+    for (int a = 0; a < nE; ++a) {
+        const double E = E_min*std::pow(E_max/E_min, static_cast<double>(a)/(nE-1));
+        for (int b = 0; b < nY; ++b) {
+            const double y = y_min*std::pow(1.0/y_min, static_cast<double>(b)/(nY-1));
+            out << E << " " << y << " " << xsec.dsigma_nc_dy(E, y) << "\n";
+        }
+    }
+}
+
+TableDifferentialCrossSection::TableDifferentialCrossSection(
+    const std::string& path, const Expect& esperado,
+    std::shared_ptr<const CrossSection> sigma_cc)
+    : path_(path), cc_(std::move(sigma_cc))
+{
+    std::ifstream in(path);
+    if (!in) throw std::runtime_error("TableDifferential: nao consegui abrir " + path);
+
+    std::vector<double> E, y, d;
+    std::string linha;
+    while (std::getline(in, linha)) {
+        if (!linha.empty() && linha[0] == '#') {
+            const auto eq = linha.find('=');
+            if (eq == std::string::npos) continue;
+            auto trim = [](std::string t){
+                const auto a = t.find_first_not_of(" \t#\r\n");
+                if (a == std::string::npos) return std::string{};
+                const auto b = t.find_last_not_of(" \t\r\n");
+                return t.substr(a, b - a + 1); };
+            meta_.emplace_back(trim(linha.substr(0, eq)), trim(linha.substr(eq + 1)));
+            continue;
+        }
+        std::istringstream ss(linha);
+        double a, b, c;
+        if (ss >> a >> b >> c) { E.push_back(a); y.push_back(b); d.push_back(c); }
+    }
+
+    // Metadados: ausencia de QUALQUER chave e excecao, nunca default.
+    for (const char* ch : kChavesObrigatorias) {
+        bool achou = false;
+        for (const auto& kv : meta_) if (kv.first == ch) achou = true;
+        if (!achou) {
+            throw std::runtime_error(
+                std::string("TableDifferential: falta o metadado obrigatorio '") + ch
+                + "' em " + path + ". O formato exige a convencao explicita: "
+                "e ai que mora o fator 2.");
+        }
+    }
+    if (meta("convention_y") != esperado.convention_y) {
+        throw std::runtime_error("TableDifferential: convention_y = '" + meta("convention_y")
+            + "' mas o chamador espera '" + esperado.convention_y + "'");
+    }
+    if (meta("current") != esperado.current) {
+        throw std::runtime_error("TableDifferential: current = '" + meta("current")
+            + "' mas o chamador espera '" + esperado.current + "'");
+    }
+
+    // grade: E varia devagar, y rapido (ordem de escrita)
+    std::vector<double> Eu, yu;
+    for (double v : E) if (Eu.empty() || v != Eu.back()) Eu.push_back(v);
+    for (double v : y) { if (yu.size() && v == yu.front()) break; yu.push_back(v); }
+    const std::size_t nE = Eu.size(), nY = yu.size();
+    if (nE < 2 || nY < 2 || d.size() != nE*nY) {
+        throw std::runtime_error("TableDifferential: grade inconsistente em " + path);
+    }
+
+    lnE_.reserve(nE); for (double v : Eu) lnE_.push_back(std::log(v));
+    lny_.reserve(nY); for (double v : yu) lny_.push_back(std::log(v));
+    lnD_.assign(nE*nY, -1.0e300);
+    for (std::size_t q = 0; q < d.size(); ++q)
+        if (d[q] > 0.0) lnD_[q] = std::log(d[q]);
+
+    // sigma_nc por no de E: integral em y da propria tabela, em log y
+    snc_.assign(nE, 0.0);
+    for (std::size_t a = 0; a < nE; ++a) {
+        double acc = 0.0;
+        for (std::size_t b = 0; b + 1 < nY; ++b) {
+            const double d0 = d[a*nY + b], d1 = d[a*nY + b + 1];
+            acc += 0.5*(d0 + d1)*(yu[b+1] - yu[b]);
+        }
+        snc_[a] = acc;
+    }
+}
+
+const std::string& TableDifferentialCrossSection::meta(const std::string& chave) const
+{
+    for (const auto& kv : meta_) if (kv.first == chave) return kv.second;
+    throw std::runtime_error("TableDifferential: metadado ausente: " + chave);
+}
+
+double TableDifferentialCrossSection::dsigma_nc_dy(double E_GeV, double y) const
+{
+    if (!(E_GeV > 0.0) || !(y > 0.0)) return 0.0;
+    const double x = std::log(E_GeV), t = std::log(y);
+
+    // Sem extrapolacao, pelo mesmo motivo da tabela de CC.
+    if (x < lnE_.front() || x > lnE_.back() ||
+        t < lny_.front() || t > lny_.back()) {
+        return 0.0;
+    }
+
+    const std::size_t nY = lny_.size();
+    auto ia = static_cast<std::size_t>(
+        std::upper_bound(lnE_.begin(), lnE_.end(), x) - lnE_.begin());
+    if (ia == 0) ia = 1;
+    if (ia >= lnE_.size()) ia = lnE_.size() - 1;
+    auto ib = static_cast<std::size_t>(
+        std::upper_bound(lny_.begin(), lny_.end(), t) - lny_.begin());
+    if (ib == 0) ib = 1;
+    if (ib >= nY) ib = nY - 1;
+
+    const std::size_t a0 = ia - 1, b0 = ib - 1;
+    const double u = (x - lnE_[a0])/(lnE_[ia] - lnE_[a0]);
+    const double v = (t - lny_[b0])/(lny_[ib] - lny_[b0]);
+
+    const double f00 = lnD_[a0*nY + b0], f01 = lnD_[a0*nY + ib];
+    const double f10 = lnD_[ia*nY + b0], f11 = lnD_[ia*nY + ib];
+    if (f00 < -1.0e299 || f01 < -1.0e299 || f10 < -1.0e299 || f11 < -1.0e299) return 0.0;
+
+    return std::exp((1-u)*(1-v)*f00 + (1-u)*v*f01 + u*(1-v)*f10 + u*v*f11);
+}
+
+double TableDifferentialCrossSection::sigma_nc(double E_GeV) const
+{
+    if (!(E_GeV > 0.0)) return 0.0;
+    const double x = std::log(E_GeV);
+    if (x < lnE_.front() || x > lnE_.back()) return 0.0;
+    auto ia = static_cast<std::size_t>(
+        std::upper_bound(lnE_.begin(), lnE_.end(), x) - lnE_.begin());
+    if (ia == 0) ia = 1;
+    if (ia >= lnE_.size()) ia = lnE_.size() - 1;
+    const std::size_t a0 = ia - 1;
+    const double u = (x - lnE_[a0])/(lnE_[ia] - lnE_[a0]);
+    return std::exp((1-u)*std::log(snc_[a0]) + u*std::log(snc_[ia]));
+}
+
+double TableDifferentialCrossSection::sigma_cc(double E_GeV) const
+{
+    return cc_ ? cc_->sigma_tot(E_GeV) : 0.0;
 }
 
 } // namespace phasis
