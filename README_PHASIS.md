@@ -509,9 +509,62 @@ perfis é **auto-registrável** (`PHASIS_REGISTER_PROFILE`), e o teste varre o
 registro comparando `ρ` na borda com `ρ` um passo para dentro. Perfil novo entra
 no teste sozinho — inclusive os da Fase 5.
 
+## Fase 5 — infraestrutura de varredura (parcial)
+
+Com ~25 ordens de grandeza de variação em τ, grade uniforme gasta quase tudo
+onde a resposta é 0 ou 1. A física vive na casca fina onde τ ~ 1 — e é só ali
+que existe sensibilidade ao modelo de σ. `locate_shell` trabalha em `log τ`
+sobre um parâmetro escalar qualquer (i, b, o que for).
+
+**A armadilha que estrutura o código:** bissecção assume monotonicidade, e
+`τ(parâmetro)` **não é monotônico**. Um perfil oco já basta — a corda por uma
+casca `[r₁,r₂]` **cresce** com `b` até `b = r₁` (de `2(r₂−r₁)` a
+`2√(r₂²−r₁²)`) e só depois cai. Bissecção cega devolveria uma raiz em silêncio,
+e esse é o único modo de falha que não produz erro visível.
+
+Protocolo, nesta ordem: varredura grosseira (≥32 pontos) contando mudanças de
+sinal → exatamente uma, bissecta no bracket → mais de uma, registra **todas** e
+marca `multi_root` → nenhuma, `shell_found = false` com o valor extremo, sem
+extrapolar e sem NaN.
+
+| | resultado |
+|---|---|
+| **T27** casca analítica, `b* = √(R² − (2N_Aσρ)⁻²)` | 3,2×10⁻¹³ |
+| **T28** perfil oco: duas raízes, ambas achadas, `multi_root` marcado | ≤ 2,1×10⁻¹³ |
+| **T29** sem bracket (transparente / opaco), retorno limpo | sem NaN |
+
+Em T28 o localizador acha `b = 8,182×10⁷` e `1,561×10⁸`, com τ = 1 nas duas a
+10⁻¹³, e sinaliza a não-monotonicidade.
+
 ## Ainda não implementado
 
-Saída CSV do espectro transmitido.
+- **O ensemble não está decidido** — ver abaixo. Nada da infraestrutura acima
+  depende dele.
+- T30 (determinismo da varredura completa), cabeçalho de reprodutibilidade
+  (commit, hashes das tabelas, `OMP_NUM_THREADS`), checkpointing.
+- Saída CSV do espectro transmitido.
+
+### A decisão pendente: emissão ou transmissão
+
+**(a) Emissão** — fonte em `r_emit` dentro do disco, isotrópica no referencial
+local. É a física: o AGN produz os neutrinos lá dentro. Mas quebra a topologia
+atual: aparecem raios de **ramo único** (emitidos para fora), e um caso novo
+(emitido para dentro com `b < b_crit`, que cai no buraco negro).
+
+O mapeamento ângulo local → `b` para um emissor **estático** é limpo:
+
+```
+b = r_emit · sin ψ / √f(r_emit)
+```
+
+com `ψ` medido da direção radial. Note que `b_max = r_emit/√f(r_emit)` em
+`ψ = π/2` é exatamente a relação do ponto de retorno — um raio emitido
+tangencialmente tem seu ponto de retorno em `r_emit`. Para um emissor
+**orbitando** há aberração adicional entre o referencial do fluido e o estático,
+que é uma decisão à parte.
+
+**(b) Transmissão** — de ∞ a ∞, sombra do disco. É o que a máquina já faz, sem
+mudança nenhuma, mas a pergunta física é mais fraca.
 
 O `TableDifferentialCrossSection` ainda não existe: as tabelas de `dσ_NC/dy` do
 `dipole` **também não**. Ver a nota de bloqueio abaixo.
