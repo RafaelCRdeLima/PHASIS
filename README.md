@@ -4,7 +4,7 @@ Dois subprojetos, acoplados **por arquivo** e não por link:
 
 | | o que faz |
 |---|---|
-| **`src/`, `include/`, `tests/`** | **PHASIS** — transporte de neutrinos UHE ao longo de geodésicas nulas em Minkowski e Schwarzschild, com disco dependente de θ e varredura paralela. Consome as tabelas de σ produzidas pelo `dipole`. Ver [README_PHASIS.md](README_PHASIS.md). |
+| **`src/`, `include/`, `tests/`** | **PHASIS** — transporte de neutrinos UHE ao longo de geodésicas nulas em Minkowski e Schwarzschild, com disco dependente de θ, varredura paralela e cascata de regeneração NC. Consome as tabelas de σ produzidas pelo `dipole`. Ver [README_PHASIS.md](README_PHASIS.md). |
 | **`dipole/`** | cálculo de σ_νN CC no formalismo de dipolos de cor (GBW, bCGC). |
 
 ---

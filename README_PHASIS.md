@@ -330,8 +330,94 @@ que diverge logaritmicamente. (Em Kerr o limite muda; não é universal.)
 Corolário prático: com `E_inf` dentro da faixa da tabela, `E_loc` nunca sai por
 mais que √3. Meia década de folga no topo da tabela basta.
 
+## Fase 4 — regeneração NC (parcial: etapas 1–3)
+
+**O ponto que torna isso tratável.** Uma interação NC em raio `r` leva
+`E'_loc → (1−y)E'_loc`. Como inicial e final estão no **mesmo** `r`, o mesmo
+`√f(r)` aparece nos dois:
+
+```
+E_loc/E'_loc = E_inf/E'_inf = 1 − y
+```
+
+`y` é **invariante sob redshift**. O mapeamento entre bins de `E_inf` não depende
+da posição; só o **coeficiente** varia ao longo do raio, porque σ é avaliada em
+`E_loc`. Daí `CascadeKernel` montar os intervalos de `y` **uma vez** e guardar
+`G_ij`, com `K_ij(E) = σ_nc(E)·G_ij` — uma multiplicação por passo, nenhuma
+quadratura.
+
+**Identidade de consistência**, exigida na construção (o construtor lança se
+falhar): `Σ_i G_ij + G_leak_j = 1`. O vazamento é acumulado numa componente
+própria do estado — nunca descartado, nunca empilhado no bin de baixo.
+
+| | resultado |
+|---|---|
+| identidade discreta, `ConstantY` e `PowerLawY`, 5 a 40 bins/década | ≤ 8,2×10⁻¹⁵ |
+| **T20** `dσ/dy = 0` ⇒ reproduz `exp(−τ)` das Fases 2–3 | 2,3×10⁻¹⁶ |
+| **T21** conservação de número (`σ_CC = 0`) | 5,1×10⁻¹⁶ |
+| **T22** solução analítica, perda **e** ganho juntos | ≤ 9,7×10⁻¹² |
+
+**Sobre a forma de T22.** Com bins log-uniformes e fluxo em lei de potência, os
+intervalos de `y` dependem só de `(i−j)`: a matriz é uma **convolução**, e a lei
+de potência é **autovetor exato** do operador discreto, com
+
+```
+σ_eff,disc = σ_CC + σ_NC(1 − Z_disc),   Z_disc(γ) = Σ_d G_d ρ^{−d(γ−1)}
+```
+
+A solução da EDO é então exatamente `exp(−n σ_eff,disc L)` — é isso que fecha em
+10⁻¹². Cobrar 10⁻¹⁰ contra o `σ_eff` **analítico** num número finito de bins
+seria cobrar do esquema binado algo que ele não pode dar; a convergência
+`Z_disc → Z = 1/γ` é medida à parte, e dá **ordem 2**:
+
+```
+  gamma  bins/dec   Z_disc          Z_analitico     desvio
+  1.5    10         0.6681345510    0.6666666667    2.202e-03
+  1.5    40         0.6667586944    0.6666666667    1.380e-04     ordem 1.99
+  1.5    160        0.6666724195    0.6666666667    8.629e-06     ordem 2.00
+```
+
+### Piso do controlador: por componente, não global
+
+Na cascata os bins de alta energia caem muitas ordens enquanto os de baixa
+crescem, **no mesmo vetor de estado**. Um piso global escalado pelo maior
+componente deixa os pequenos sem controle; escalado pelo menor, colapsa o passo.
+A escolha foi um piso **por bin, proporcional ao fluxo inicial daquele bin**
+(`10⁻¹⁴·φ_i(0)`): diz "não me importo com precisão relativa depois que este bin
+caiu muito abaixo do que ele próprio começou" — que é fisicamente o certo, já
+que um bin nessa situação não contribui mais.
+
+### O invariante de borda, que custou dois bugs
+
+`ρ` **tem de ser inclusiva nas duas bordas do suporte**: `ρ(r_support_min)` e
+`ρ(r_support_max)` devem valer o limite pelo interior, nunca zero. Os
+integradores usam exatamente `[r_lo, r_hi]`, então as bordas **são** pontos de
+avaliação; se `ρ` for zero na borda e não-zero um fio para dentro, o estágio de
+Runge–Kutta que cai ali vê um degrau, o estimador não converge, e encolher o
+passo nunca ajuda porque a descontinuidade está no extremo.
+
+Apareceu duas vezes, em sentidos opostos: na Fase 3 um trecho **vazio** tocava
+`r_in` (onde ρ é corretamente não-nula) — resolvido não integrando matéria onde
+não há; na Fase 4 o ramo de entrada **começava** em `r_out`, onde `UniformBall`
+devolvia zero por usar `r < R` em vez de `r <= R`. Está documentado como
+invariante em `DensityProfile`.
+
 ## Ainda não implementado
 
-Fase 4: regeneração NC — equação de cascata acoplada em `E_inf`, que é a
-variável certa porque é conservada ao longo da geodésica; o redshift então
-aparece só no argumento de σ e no elemento de comprimento.
+Fase 4, etapas 4–5: **T23** (exponencial de matriz como rota independente),
+**T24** (convergência de grade com expoente reportado), **T25** (magnitude do
+redshift), round-trip do leitor de tabela, e a saída CSV do espectro.
+
+O `TableDifferentialCrossSection` ainda não existe: as tabelas de `dσ_NC/dy` do
+`dipole` **também não**. Ver a nota de bloqueio abaixo.
+
+### Bloqueio conhecido: dσ_NC/dy não existe no `dipole`
+
+`makeNCParameters` é chamada num único lugar do `dipole` (`main.cpp`, modo
+`wavefunctions`, para desenhar `|ψ|²`). **Nada calcula σ_NC**, e só existe
+`d2sigma_dxdy_CC`. Produzir a tabela exige: corrigir D10 (o α do NC está 2×
+baixo), implementar as funções de estrutura NC, o duplo-diferencial, e a saída em
+grade `(E, y)` com `y` logarítmico.
+
+Isso **não bloqueia** as etapas 4–5: T23–T25 usam kernels analíticos, exatamente
+como T20–T22.

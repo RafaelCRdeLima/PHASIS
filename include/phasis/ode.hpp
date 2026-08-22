@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <functional>
+#include <vector>
 
 namespace phasis {
 
@@ -52,6 +53,18 @@ struct OdeOpts {
     // exemplo). O teto limita o estrago; a defesa principal e cortar o
     // intervalo nas fronteiras do suporte, o que trace_via_ode faz.
     double h_max_rel = 0.05;
+
+    // Piso absoluto POR COMPONENTE. Se vazio, usa o escalar abs_tol.
+    //
+    // Necessario na cascata: os bins de alta energia caem muitas ordens
+    // enquanto os de baixa crescem, no MESMO vetor de estado. Um piso
+    // global escalado pelo maior componente deixa os pequenos sem
+    // controle; escalado pelo menor, colapsa o passo (o bug da Fase 3).
+    // A escolha certa e um piso por bin, proporcional ao fluxo INICIAL
+    // daquele bin: diz "nao me importo com precisao relativa depois que
+    // este bin caiu muito abaixo do que ele proprio comecou", que e
+    // fisicamente o certo -- um bin nessa situacao ja nao contribui.
+    std::vector<double> abs_tol_per_component;
     long   max_steps = 2000000;
 };
 
@@ -78,6 +91,12 @@ OdeStats dopri54(const std::function<void(double, const OdeState<N>&, OdeState<N
                  double s0, double s1, OdeState<N>& y, const OdeOpts& opts);
 
 // instanciacao usada pelo tracador
+// Versao de dimensao dinamica, para a cascata (N bins nao e conhecido em
+// tempo de compilacao).
+OdeStats dopri54_dyn(
+    const std::function<void(double, const std::vector<double>&, std::vector<double>&)>& f,
+    double s0, double s1, std::vector<double>& y, const OdeOpts& opts);
+
 extern template OdeStats dopri54<6>(
     const std::function<void(double, const OdeState<6>&, OdeState<6>&)>&,
     double, double, OdeState<6>&, const OdeOpts&);

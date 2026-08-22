@@ -15,6 +15,24 @@ namespace phasis {
 // nulo. Nao e cosmetico: e o que permite ao integrador cortar a faixa
 // vazia em vez de pedir a quadratura adaptativa que descubra sozinha
 // uma descontinuidade em degrau -- o que ela faz mal e caro.
+//
+// INVARIANTE OBRIGATORIO -- rho tem de ser INCLUSIVA nas duas bordas:
+//
+//     rho(r_support_min) e rho(r_support_max) devem valer o LIMITE PELO
+//     INTERIOR, nunca zero.
+//
+// Nao e detalhe de estilo. Os integradores usam exatamente [r_lo, r_hi]
+// como intervalo, entao as bordas SAO pontos de avaliacao. Se rho for
+// zero na borda e nao-zero um fio para dentro, o estagio de Runge-Kutta
+// que cai ali ve um degrau, o estimador de erro nao converge e o passo
+// colapsa ate h_min -- e encolher nunca ajuda, porque a descontinuidade
+// esta no extremo.
+//
+// Custou dois bugs, um em cada sentido: na Fase 3 um trecho VAZIO
+// tocava r_in (onde rho e corretamente nao-nula), resolvido nao
+// integrando materia onde nao ha; na Fase 4 o ramo de entrada COMECAVA
+// em r_out, onde UniformBall devolvia zero por usar `r < R` em vez de
+// `r <= R`. Sao a mesma classe: borda dura num extremo de integracao.
 // =====================================================================
 struct DensityProfile {
     virtual ~DensityProfile() = default;
@@ -39,7 +57,8 @@ public:
     UniformBall(double rho0, double R) : rho0_(rho0), R_(R) {}
 
     double rho(double r, double) const override {
-        return (r < R_) ? rho0_ : 0.0;
+        // `<=`, nao `<`: ver o invariante de borda em DensityProfile.
+        return (r <= R_) ? rho0_ : 0.0;
     }
     double r_support_max() const override { return R_; }
     std::string name() const override { return "UniformBall"; }

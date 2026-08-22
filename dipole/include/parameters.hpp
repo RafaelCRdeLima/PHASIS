@@ -110,6 +110,33 @@ inline ElectroweakCouplings makeCouplings(CurrentType current, QuarkFlavor flavo
     }
 
     // NC: Z0 -> q qbar
+    //
+    // ATENCAO -- D10, BUG CONHECIDO E NAO CORRIGIDO.
+    //
+    // Este valor esta um FATOR 2 BAIXO. O acoplamento efetivo do vertice
+    // NC e (g_Z/2)^2/(4pi) = sqrt(2) G_F M_Z^2/(4 pi), o dobro do que
+    // esta escrito aqui. Confirmado por duas rotas independentes:
+    //
+    //  (i) direto: G_F/sqrt2 = g_Z^2/(8 M_Z^2) => alpha = g_Z^2/(16 pi);
+    //
+    // (ii) contra Kutak-Kwiecinski EPJ C29 (2003) 521, eq. (14)/(15):
+    //      |psi_T^Z|^2 = (3/2pi^2)(L_u^2+L_d^2+R_u^2+R_d^2)[...]
+    //      Como L = g_V+g_A e R = g_V-g_A, vale L^2+R^2 = 2(g_V^2+g_A^2),
+    //      entao C = L_u^2+L_d^2+R_u^2+R_d^2 = 2*Soma_tipos(g_V^2+g_A^2).
+    //      Somando os 2 canais com o prefator 6*alpha/(4pi)^2 e dividindo
+    //      por alpha, o codigo da (3/2pi^2)*C/2 -- metade de KK.
+    //
+    // NAO corrigido ainda porque NADA calcula sigma_NC: makeNCParameters
+    // so e chamada em main.cpp, para desenhar |psi|^2. Corrigir junto com
+    // a implementacao do NC, nao antes -- assim o teste contra o HERA
+    // pega os dois de uma vez.
+    //
+    // NOTA SOBRE O SOMATORIO DE SABORES: em KK, C multiplica a MESMA soma
+    // de sabores que aparece no CC (comparar eq. 3 e eq. 5), entao a soma
+    // sobre geracoes ja esta dentro das chaves. NAO ha fator 2 adicional
+    // de geracoes. Verificado numericamente: C/4*(M_Z/M_W)^2 = 0.4224,
+    // que e a razao sigma_NC/sigma_CC conhecida do SM (~0.42); com o
+    // fator 2 extra daria 0.845.
     const double alphaEW = (MZ*MZ*GF/std::sqrt(2.0))/(4.0*pi);
 
     switch (flavor) {

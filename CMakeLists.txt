@@ -25,6 +25,7 @@ find_package(OpenMP)
 
 
 add_library(phasis_core
+  src/cascade.cpp
   src/ode.cpp
   src/sweep.cpp
   src/integrate.cpp
@@ -53,3 +54,7 @@ add_test(NAME phase2 COMMAND test_phase2)
 add_executable(test_phase3 tests/test_phase3.cpp)
 target_link_libraries(test_phase3 PRIVATE phasis_core)
 add_test(NAME phase3 COMMAND test_phase3)
+
+add_executable(test_phase4 tests/test_phase4.cpp)
+target_link_libraries(test_phase4 PRIVATE phasis_core)
+add_test(NAME phase4 COMMAND test_phase4)
