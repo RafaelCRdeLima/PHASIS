@@ -46,6 +46,9 @@ int main(int argc, char* argv[])
 
     double Q2min = 1.0;
     std::string model_name = "GBW";
+    std::string current_name = "CC";
+    int nY = 0;                 // > 0: grava tambem a tabela dsigma/dy
+    double yMinTable = 0.0;     // 0 = deriva do corte cinematico
     bool verbose = true;
 
     for (int i = 1; i < argc; ++i) {
@@ -65,6 +68,9 @@ int main(int argc, char* argv[])
         else if (arg == "--use-F3")   useF3 = std::stoi(argv[++i]) != 0;
         else if (arg == "--pdf-set")  pdf_set = argv[++i];
         else if (arg == "--beam")     beam_name = argv[++i];
+        else if (arg == "--current")  current_name = argv[++i];
+        else if (arg == "--nY")       nY = std::stoi(argv[++i]);
+        else if (arg == "--yMin")     yMinTable = std::stod(argv[++i]);
         else if (arg == "--quiet")    verbose = false;
         else {
             std::cerr << "Argumento desconhecido: " << arg << "\n";
@@ -78,6 +84,11 @@ int main(int argc, char* argv[])
     }
 
     DipoleModel model = parseDipoleModel(model_name);
+
+    CurrentType current;
+    if      (current_name == "CC") current = CurrentType::CC;
+    else if (current_name == "NC") current = CurrentType::NC;
+    else { std::cerr << "Corrente invalida. Use --current CC ou --current NC.\n"; return 2; }
 
     GBWParameters gbw;
     IIMParameters iim;
@@ -107,13 +118,30 @@ int main(int argc, char* argv[])
     spec.xMin  = 0.5*Q2min/s_max;
     spec.xMax  = 1.0;
 
-    // Kutak-Kwiecinski: os dipolos favorecidos por Cabibbo sao
+    // CC -- Kutak-Kwiecinski: os dipolos favorecidos por Cabibbo sao
     // ud~(du~) e cs~(sc~). Os dois canais somados dao o Sigma(carga^2)
     // efetivo = 4 das eqs. (12) e (13).
-    const std::vector<StructureTable::Channel> channels = {
+    //
+    // NC -- o Z acopla ao MESMO sabor dos dois lados, entao sao quatro
+    // dipolos qq~ em vez de dois. A soma efetiva vira
+    // Soma_q (g_V^2+g_A^2) = 1.3127, que e o C de KK eq. (15). A razao
+    // 1.3127/4 = 0.328, vezes (M_Z/M_W)^2, da 0.423 -- a razao
+    // sigma_NC/sigma_CC conhecida. Ver o bloco D10 em parameters.hpp.
+    //
+    // Mesmo conjunto de sabores nos dois casos (u, d, s, c): o ajuste
+    // GBW e de quatro sabores, e incluir b seria sair do ajuste.
+    const std::vector<StructureTable::Channel> channels_cc = {
         { QuarkFlavor::u, QuarkFlavor::d },
         { QuarkFlavor::c, QuarkFlavor::s }
     };
+    const std::vector<StructureTable::Channel> channels_nc = {
+        { QuarkFlavor::u, QuarkFlavor::u },
+        { QuarkFlavor::d, QuarkFlavor::d },
+        { QuarkFlavor::s, QuarkFlavor::s },
+        { QuarkFlavor::c, QuarkFlavor::c }
+    };
+    const std::vector<StructureTable::Channel>& channels =
+        (current == CurrentType::NC) ? channels_nc : channels_cc;
 
     if (verbose) {
         std::cerr << "Montando a tabela de F_T, F_L (uma vez, serve todas as energias)\n";
@@ -121,7 +149,7 @@ int main(int argc, char* argv[])
 
     const StructureTable table(
         model == DipoleModel::GBW ? DipoleModelId::GBW : DipoleModelId::IIM,
-        channels, gbw, iim, quad, spec, masses, verbose
+        channels, gbw, iim, quad, spec, masses, verbose, current
     );
 
     if (verbose) {
@@ -130,7 +158,7 @@ int main(int argc, char* argv[])
     }
 
     const std::string output_file =
-        "data/sigma_nuN_CC_" + model_name + ".dat";
+        "data/sigma_nuN_" + current_name + "_" + model_name + ".dat";
 
     std::ofstream out(output_file);
     out << std::setprecision(10);
@@ -149,7 +177,7 @@ int main(int argc, char* argv[])
     out << "# convention_y = (E_in - E_out)/E_in\n";
     out << "# target       = isoscalar_nucleon\n";
     out << "# projectile   = " << beam_name << "\n";
-    out << "# current      = CC\n";
+    out << "# current      = " << current_name << "\n";
     out << "# units_sigma  = cm^2\n";
     out << "# units_E      = GeV\n";
     out << "# M_Z_GeV      = " << MZ << "\n";
@@ -186,7 +214,8 @@ int main(int argc, char* argv[])
     }
     out << "# massas_GeV  u " << masses.u << "  d " << masses.d
         << "  s " << masses.s << "  c " << masses.c << "\n";
-    out << "# canais ud, cs\n";
+    out << "# canais " << (current == CurrentType::NC ? "uu, dd, ss, cc"
+                                                       : "ud, cs") << "\n";
     out << "# quadratura_rz  Nr " << quad.Nr << "  Nz " << quad.Nz
         << "  rMin " << quad.rMin << "  rMax " << quad.rMax
         << "  zMin " << quad.zMin << "   [ln r; z log nas duas pontas]\n";
@@ -206,8 +235,8 @@ int main(int argc, char* argv[])
         const double Enu = std::pow(10.0, logE);
 
         int nodesQused = 0;
-        const double sigma_gev2 = sigmaNuN_CC(
-            Enu, table, nodesQ, nodesX, useF3, weakSF.get(), beam,
+        const double sigma_gev2 = sigmaNuN(
+            Enu, current, table, nodesQ, nodesX, useF3, weakSF.get(), beam,
             Q2min, &nodesQused
         );
 
@@ -218,9 +247,125 @@ int main(int argc, char* argv[])
         if (verbose) {
             std::cout << "model = " << model_name
                       << "   E_nu = " << Enu
-                      << " GeV   sigma_CC = " << sigma_cm2
+                      << " GeV   sigma_" << current_name << " = " << sigma_cm2
                       << " cm^2   (NlogQ = " << nodesQused << ")\n";
         }
+    }
+
+    // =================================================================
+    // Tabela diferencial dsigma/dy, no formato que
+    // phasis::TableDifferentialCrossSection consome.
+    //
+    // GRADE EM y, e o que ela NAO cobre
+    //
+    // dsigma/dy so e nao nula para y >= Q2min/(s x_max): abaixo disso
+    // todo o Q^2 acessivel cai sob o corte de validade do modelo. Esse
+    // limite DEPENDE DA ENERGIA (cai como 1/E), mas o formato de tabela
+    // exige uma grade em y comum a todas as energias.
+    //
+    // A escolha aqui e cobrir tudo: y_min da grade e o corte na energia
+    // MAIS ALTA, e nas energias mais baixas as linhas abaixo do proprio
+    // corte saem zeradas. Sao zeros de verdade -- consequencia de
+    // Q^2 >= Q2min -- e nao lacunas. A alternativa (comecar a grade no
+    // corte da energia mais BAIXA) esconderia, nas energias altas, uma
+    // faixa de y pequeno que o modelo cobre e que a cascata usa: y
+    // pequeno e perda de energia pequena, que e o regime onde o kernel
+    // de regeneracao mais pesa.
+    //
+    // O cabecalho reporta, por energia, que fracao de sigma a integral
+    // em y da grade recupera. Se essa fracao nao for ~1, o problema e a
+    // RESOLUCAO da grade, e o numero esta la para ser visto.
+    // =================================================================
+    if (nY > 1) {
+        const double E_hi = std::pow(10.0, logEmax);
+        const double y_lo = (yMinTable > 0.0)
+            ? yMinTable
+            : yMinKinematic(E_hi, Q2min);
+
+        const std::string dy_file =
+            "data/dsigma_dy_" + current_name + "_" + model_name + ".dat";
+
+        std::ofstream dy(dy_file);
+        if (!dy) {
+            std::cerr << "Nao consegui escrever " << dy_file << "\n";
+            return 1;
+        }
+        dy << std::setprecision(10);
+
+        dy << "# convention_y = (E_in - E_out)/E_in\n";
+        dy << "# target       = isoscalar_nucleon\n";
+        dy << "# projectile   = " << beam_name << "\n";
+        dy << "# current      = " << current_name << "\n";
+        dy << "# units_sigma  = cm^2\n";
+        dy << "# units_E      = GeV\n";
+        dy << "# M_Z_GeV      = " << MZ << "\n";
+        dy << "# dipole_model = " << model_name << "\n";
+        dy << "# generated_by = sigma_nuN (PHASIS/dipole) commit "
+           << PHASIS_GIT_HASH << "\n";
+        dy << "# M_W_GeV      = " << MW << "\n";
+        dy << "# xF3_from     = " << (useF3 ? pdf_set : std::string("nenhum")) << "\n";
+        dy << "# Q2min_GeV2   = " << Q2min << "\n";
+        dy << "# y_min_grade  = " << y_lo
+           << "   (= Q2min/(s x_max) na energia mais alta da tabela)\n";
+        dy << "# nE = " << NE << "   nY = " << nY << "\n";
+        dy << "#\n";
+        dy << "# CORTE CINEMATICO: dsigma/dy = 0 para y < Q2min/(s x_max),\n";
+        dy << "# que cresce quando E cai. Os zeros nas energias baixas sao\n";
+        dy << "# consequencia de Q^2 >= Q2min, nao lacunas da tabela.\n";
+        dy << "#\n";
+        dy << "# fracao de sigma recuperada por INT dy (dsigma/dy) sobre esta grade:\n";
+
+        std::vector<double> Es(NE), ys(nY);
+        for (int i = 0; i < NE; ++i) {
+            const double logE = (NE == 1) ? logEmin
+                : logEmin + i*(logEmax - logEmin)/(NE - 1);
+            Es[i] = std::pow(10.0, logE);
+        }
+        for (int b = 0; b < nY; ++b) {
+            ys[b] = y_lo*std::pow(1.0/y_lo, static_cast<double>(b)/(nY - 1));
+        }
+
+        std::vector<std::vector<double>> D(NE, std::vector<double>(nY, 0.0));
+
+        // Paralelo SO sem LHAPDF. LHAPDF::GridPDF guarda cache mutavel
+        // dentro do objeto, entao compartilhar um PDF entre threads e
+        // corrida de dados -- e o sintoma seria ruido pequeno e
+        // irreprodutivel na tabela, exatamente o tipo de coisa que
+        // levaria dias para diagnosticar depois.
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic) if(!useF3)
+#endif
+        for (int i = 0; i < NE; ++i) {
+            for (int b = 0; b < nY; ++b) {
+                D[i][b] = dsigma_dy(Es[i], ys[b], current, table, nodesX,
+                                    useF3, weakSF.get(), beam, Q2min)
+                          *GeVminus2_to_cm2;
+            }
+        }
+
+        for (int i = 0; i < NE; ++i) {
+            // trapezio em y linear, que e o que o leitor do PHASIS usa
+            double acc = 0.0;
+            for (int b = 0; b + 1 < nY; ++b) {
+                acc += 0.5*(D[i][b] + D[i][b+1])*(ys[b+1] - ys[b]);
+            }
+            int nq = 0;
+            const double sig = sigmaNuN(Es[i], current, table, nodesQ, nodesX,
+                                        useF3, weakSF.get(), beam, Q2min, &nq)
+                               *GeVminus2_to_cm2;
+            if (i % std::max(1, NE/12) == 0 || i == NE-1) {
+                dy << "#   E = " << Es[i] << " GeV : " << (sig > 0.0 ? acc/sig : 0.0)
+                   << "   (y_min cinematico = " << yMinKinematic(Es[i], Q2min) << ")\n";
+            }
+        }
+
+        dy << "# E_GeV y dsigma_dy_cm2\n";
+        for (int i = 0; i < NE; ++i) {
+            for (int b = 0; b < nY; ++b) {
+                dy << Es[i] << " " << ys[b] << " " << D[i][b] << "\n";
+            }
+        }
+        std::cout << "Arquivo gerado: " << dy_file << "\n";
     }
 
     if (table.clampedQueries() > 0) {

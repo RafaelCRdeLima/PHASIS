@@ -111,33 +111,50 @@ inline ElectroweakCouplings makeCouplings(CurrentType current, QuarkFlavor flavo
 
     // NC: Z0 -> q qbar
     //
-    // ATENCAO -- D10, BUG CONHECIDO E NAO CORRIGIDO.
+    // D10, RESOLVIDO. O valor antigo estava um fator 2 baixo, e o
+    // comentario que o descrevia tinha duas metades que pareciam se
+    // contradizer. Nao se contradizem: sao fatores 2 DIFERENTES.
     //
-    // Este valor esta um FATOR 2 BAIXO. O acoplamento efetivo do vertice
-    // NC e (g_Z/2)^2/(4pi) = sqrt(2) G_F M_Z^2/(4 pi), o dobro do que
-    // esta escrito aqui. Confirmado por duas rotas independentes:
+    // (a) O VALOR estava errado. Escrevendo o vertice como
+    //     C gamma^mu (g_V - g_A gamma_5), o Z da C = g_Z/2 = g/(2 cos),
+    //     e a convencao deste codigo e alpha_EW = C^2/(4 pi). Com
+    //     g^2 = 4 sqrt2 G_F M_W^2 e M_W = M_Z cos:
     //
-    //  (i) direto: G_F/sqrt2 = g_Z^2/(8 M_Z^2) => alpha = g_Z^2/(16 pi);
+    //         C^2 = g^2/(4 cos^2) = sqrt2 G_F M_Z^2
+    //         alpha_NC = sqrt2 G_F M_Z^2 / (4 pi)
     //
-    // (ii) contra Kutak-Kwiecinski EPJ C29 (2003) 521, eq. (14)/(15):
-    //      |psi_T^Z|^2 = (3/2pi^2)(L_u^2+L_d^2+R_u^2+R_d^2)[...]
-    //      Como L = g_V+g_A e R = g_V-g_A, vale L^2+R^2 = 2(g_V^2+g_A^2),
-    //      entao C = L_u^2+L_d^2+R_u^2+R_d^2 = 2*Soma_tipos(g_V^2+g_A^2).
-    //      Somando os 2 canais com o prefator 6*alpha/(4pi)^2 e dividindo
-    //      por alpha, o codigo da (3/2pi^2)*C/2 -- metade de KK.
+    //     O antigo era G_F M_Z^2/(sqrt2 * 4 pi) -- exatamente metade.
+    //     Confere com o CC pela mesma rota: C_CC = g/(2 sqrt2), logo
+    //     C_CC^2 = G_F M_W^2/sqrt2 e alpha_CC = G_F M_W^2/(sqrt2 4 pi),
+    //     que e o que esta escrito acima e esta certo.
     //
-    // NAO corrigido ainda porque NADA calcula sigma_NC: makeNCParameters
-    // so e chamada em main.cpp, para desenhar |psi|^2. Corrigir junto com
-    // a implementacao do NC, nao antes -- assim o teste contra o HERA
-    // pega os dois de uma vez.
+    // (b) E NAO MUDA sigma. StructureTable::computeAt divide F_T e F_L
+    //     pelo alphaEW DO PROPRIO CANAL (structure_table.cpp:140), que e
+    //     a convencao DIS: toda a normalizacao eletrofraca de sigma vem
+    //     de G_F^2 e do propagador na formula mestra, e o que sobra em F
+    //     e so a soma efetiva de cargas. Entao alpha_NC cancela, e a
+    //     razao sigma_NC/sigma_CC nao se mexe.
     //
-    // NOTA SOBRE O SOMATORIO DE SABORES: em KK, C multiplica a MESMA soma
-    // de sabores que aparece no CC (comparar eq. 3 e eq. 5), entao a soma
-    // sobre geracoes ja esta dentro das chaves. NAO ha fator 2 adicional
-    // de geracoes. Verificado numericamente: C/4*(M_Z/M_W)^2 = 0.4224,
-    // que e a razao sigma_NC/sigma_CC conhecida do SM (~0.42); com o
-    // fator 2 extra daria 0.845.
-    const double alphaEW = (MZ*MZ*GF/std::sqrt(2.0))/(4.0*pi);
+    //     E por isso que a checagem numerica do comentario antigo estava
+    //     certa mesmo com o valor errado: ela mede a razao das SOMAS DE
+    //     CARGAS, onde alpha ja saiu.
+    //
+    //         Soma_NC (g_V^2 + g_A^2) sobre u,d,s,c = 1.3127  (= C de KK)
+    //         Soma_CC (g_V^2 + g_A^2) sobre ud, cs  = 4
+    //         razao * (M_Z/M_W)^2 = (1.3127/4)(1.2885) = 0.4228
+    //
+    //     que e a razao sigma_NC/sigma_CC conhecida do SM (~0.42).
+    //
+    // SOMATORIO DE SABORES: em KK, C multiplica a MESMA soma de sabores
+    // que aparece no CC (comparar eq. 3 e eq. 5), entao a soma sobre
+    // geracoes ja esta dentro das chaves. NAO ha fator 2 adicional de
+    // geracoes -- e o erro que o 0.845 denunciaria.
+    //
+    // O CC junta dois sabores num dipolo (ud~, cs~): 2 canais. O NC junta
+    // o mesmo sabor consigo (uu~, dd~, ss~, cc~): 4 canais. Mesma
+    // populacao de quarks, contagem diferente de dipolos -- e e disso que
+    // vem a maior parte da razao 0.42, nao do acoplamento.
+    const double alphaEW = std::sqrt(2.0)*GF*MZ*MZ/(4.0*pi);
 
     switch (flavor) {
         case QuarkFlavor::d:

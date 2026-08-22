@@ -46,8 +46,22 @@ public:
         const IIMParameters& iim,
         const QuadratureGrid& quad,
         const TableSpec& spec,
-        const QuarkMasses& masses = QuarkMasses{},
-        bool verbose = false
+        const QuarkMasses& masses,
+        bool verbose,
+        // CC: o dipolo junta DOIS sabores (ud~, cs~), e Channel e o par.
+        // NC: o dipolo junta o mesmo sabor consigo (uu~, dd~, ...), e so
+        // Channel::first e usado. Nao ha caminho separado para NC: a
+        // mesma tabela, a mesma quadratura, so os acoplamentos e as
+        // massas do par mudam.
+        //
+        // SEM VALOR PADRAO, de proposito. Ele tinha um, e foi assim que
+        // a primeira tabela NC saiu errada: os canais eram uu, dd, ss,
+        // cc mas os ACOPLAMENTOS continuaram CC (g_V=-1, g_A=1), porque
+        // o argumento simplesmente nao foi passado. O resultado era
+        // plausivel -- uma tabela suave, monotonica, sem excecao -- e
+        // dava sigma_NC/sigma_CC = 2.49 em vez de 0.42. Um default
+        // silencioso num parametro que muda a FISICA e um convite.
+        CurrentType current
     );
 
     // F_T e F_L somados sobre os canais, ja divididos por alphaEW.
@@ -59,6 +73,7 @@ public:
     // erro de interpolacao.
     StructureTL exact(double x, double Q2) const;
 
+    CurrentType current() const { return current_; }
     const TableSpec& spec() const { return spec_; }
     double buildSeconds() const { return build_seconds_; }
     long clampedQueries() const { return clamped_; }
@@ -67,6 +82,7 @@ public:
 private:
     DipoleModelId model_;
     std::vector<Channel> channels_;
+    CurrentType current_ = CurrentType::CC;
     GBWParameters gbw_;
     IIMParameters iim_;
     QuadratureGrid quad_;

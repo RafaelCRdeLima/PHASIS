@@ -186,6 +186,23 @@ const std::vector<std::string>& required_metadata_keys();
 // nem de generated_by: e exatamente ali que as duas TEM de diferir.
 void assert_comparable(const TableCrossSection& a, const TableCrossSection& b);
 
+// ---------------------------------------------------------------------
+// Validacao cruzada para SOMAR duas tabelas, nao para compara-las.
+//
+// assert_comparable exige current IGUAL: e o guarda certo para dipolo
+// contra colinear, onde a razao entre os dois so significa algo se
+// tudo mais coincidir.
+//
+// Somar CC com NC e o caso oposto: as duas tabelas TEM de ter current
+// diferente, e uma tem de ser CC e a outra NC. Somar duas tabelas de CC
+// contaria a mesma coisa duas vezes, e e um erro que passaria calado --
+// o resultado seria uma secao de choque perfeitamente plausivel, duas
+// vezes grande demais.
+//
+// Exige, alem disso, igualdade de target, projectile, units_sigma e
+// units_E, pelo mesmo motivo de sempre.
+void assert_composable(const TableCrossSection& cc, const TableCrossSection& nc);
+
 // Ecoa os metadados de uma tabela num cabecalho de CSV, cada linha
 // prefixada por `tag`. Existe para que um arquivo de saida denuncie
 // sozinho, daqui a seis meses, se alguem comparou maca com laranja.

@@ -19,7 +19,7 @@ SRC   := src/emission.cpp src/shell.cpp src/cascade.cpp src/ode.cpp src/sweep.cp
 OBJ   := $(SRC:%.cpp=$(BUILD)/%.o)
 
 .PHONY: all test clean
-all: $(BUILD)/trace $(BUILD)/alpha_scan $(BUILD)/redshift_scan $(BUILD)/test_phase1 $(BUILD)/test_phase2 $(BUILD)/test_phase3 $(BUILD)/test_phase4 $(BUILD)/test_phase5 $(BUILD)/test_phase6 $(BUILD)/test_phase7
+all: $(BUILD)/trace $(BUILD)/alpha_scan $(BUILD)/redshift_scan $(BUILD)/test_phase1 $(BUILD)/test_phase2 $(BUILD)/test_phase3 $(BUILD)/test_phase4 $(BUILD)/test_phase5 $(BUILD)/test_phase6 $(BUILD)/test_phase7 $(BUILD)/test_phase8
 
 $(BUILD)/%.o: %.cpp
 	@mkdir -p $(dir $@)
@@ -35,6 +35,9 @@ $(BUILD)/redshift_scan: $(OBJ) $(BUILD)/src/redshift_scan.o
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 $(BUILD)/test_phase7: $(OBJ) $(BUILD)/tests/test_phase7.o
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+$(BUILD)/test_phase8: $(OBJ) $(BUILD)/tests/test_phase8.o
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 $(BUILD)/test_phase1: $(OBJ) $(BUILD)/tests/test_phase1.o
@@ -55,7 +58,7 @@ $(BUILD)/test_phase5: $(OBJ) $(BUILD)/tests/test_phase5.o
 $(BUILD)/test_phase6: $(OBJ) $(BUILD)/tests/test_phase6.o
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-test: $(BUILD)/test_phase1 $(BUILD)/test_phase2 $(BUILD)/test_phase3 $(BUILD)/test_phase4 $(BUILD)/test_phase5 $(BUILD)/test_phase6 $(BUILD)/test_phase7
+test: $(BUILD)/test_phase1 $(BUILD)/test_phase2 $(BUILD)/test_phase3 $(BUILD)/test_phase4 $(BUILD)/test_phase5 $(BUILD)/test_phase6 $(BUILD)/test_phase7 $(BUILD)/test_phase8
 	@./$(BUILD)/test_phase1
 	@./$(BUILD)/test_phase2
 	@./$(BUILD)/test_phase3
@@ -63,6 +66,7 @@ test: $(BUILD)/test_phase1 $(BUILD)/test_phase2 $(BUILD)/test_phase3 $(BUILD)/te
 	@./$(BUILD)/test_phase5
 	@./$(BUILD)/test_phase6
 	@./$(BUILD)/test_phase7
+	@./$(BUILD)/test_phase8
 
 clean:
 	rm -rf $(BUILD)

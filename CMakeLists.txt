@@ -78,3 +78,7 @@ add_test(NAME phase6 COMMAND test_phase6)
 add_executable(test_phase7 tests/test_phase7.cpp)
 target_link_libraries(test_phase7 PRIVATE phasis_core)
 add_test(NAME phase7 COMMAND test_phase7)
+
+add_executable(test_phase8 tests/test_phase8.cpp)
+target_link_libraries(test_phase8 PRIVATE phasis_core)
+add_test(NAME phase8 COMMAND test_phase8)

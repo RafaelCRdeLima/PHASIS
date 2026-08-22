@@ -2,6 +2,8 @@
 #define PHASIS_CASCADE_HPP
 
 #include <cmath>
+#include <limits>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -60,6 +62,15 @@ struct DifferentialCrossSection {
     // [0,1]; uma descontinuidade DENTRO de um painel de Simpson quebra
     // isso, e o erro nao cancela entre intervalos adjacentes.
     virtual std::vector<double> y_breakpoints() const { return {}; }
+
+    // Faixa em E onde dsigma/dy esta definida. A base nao restringe; a
+    // tabela restringe a faixa tabelada. O kernel precisa disso para
+    // saber ate onde pode tabelar G_ij(E) -- e para recusar, em vez de
+    // extrapolar, quando o redshift empurra E_loc para fora.
+    virtual double E_domain_min() const { return 0.0; }
+    virtual double E_domain_max() const {
+        return std::numeric_limits<double>::infinity();
+    }
 
     virtual std::string name() const = 0;
 };
@@ -171,20 +182,72 @@ private:
 //
 // O vazamento e RASTREADO, nunca descartado nem absorvido no bin de
 // baixo -- absorver empilharia fluxo artificialmente na borda.
+// FORMA DEPENDENTE DE E -- o caminho que o codigo chamava de Fase 4b.
+//
+// Uma tabela de dipolo real NAO tem dsigma/dy = sigma_nc(E) g(y) com g
+// fixo: o propagador e a faixa de x acessivel mudam com a energia, e
+// com eles a forma em y. Entao G_ij tem de virar G_ij(E).
+//
+// A rota escolhida: tabelar G_ij em nos LOG-E e interpolar LINEARMENTE
+// em ln E. Isso nao e so conveniencia -- e o que preserva a fisica:
+//
+//     A identidade de consistencia  soma_i G_ij + G_leak_j = 1
+//     e LINEAR nos G. Interpolacao linear de um conjunto que soma 1 em
+//     cada no ainda soma 1 entre os nos.
+//
+// Ou seja: a cascata conserva numero EXATAMENTE em qualquer E, nao so
+// nos nos da tabela. Com interpolacao cubica isso deixaria de valer, e
+// o erro de conservacao apareceria como fluxo criado ou destruido do
+// nada ao longo do raio -- que e justamente o tipo de erro que nenhuma
+// checagem a jusante pegaria.
+//
+// Os intervalos em y que ligam o bin j ao bin i NAO dependem de E_loc:
+// y e invariante sob redshift, e as bordas dos bins estao em E_inf. So
+// o ARGUMENTO de dsigma/dy varia. Por isso da para tabelar em E de uma
+// vez e nunca mais reintegrar.
 class CascadeKernel {
 public:
     CascadeKernel(const EnergyGrid& grid,
                   const DifferentialCrossSection& xsec,
                   double consistency_tol = 1.0e-12,
-                  int n_y_quad = 4096);
+                  int n_y_quad = 4096,
+                  // Nos em ln E, usados so quando a forma depende de E.
+                  int n_E_nodes = 24,
+                  // Faixa em E a tabelar. 0 = automatica:
+                  // [E_min/2, E_max*2] da grade, cortada pelo dominio da
+                  // secao de choque. O fator 2 cobre com folga o boost
+                  // maximo sqrt(3) do redshift em Schwarzschild.
+                  double E_lo = 0.0,
+                  double E_hi = 0.0);
 
     // Forma normalizada: G_ij = integral de g(y) no intervalo (i,j).
-    // Vale K_ij(E) = sigma_nc(E) * G_ij quando a forma independe de E.
-    double G(int i, int j) const { return G_[idx(i, j)]; }
-    double G_leak(int j)   const { return G_leak_[static_cast<std::size_t>(j)]; }
+    // Vale K_ij(E) = sigma_nc(E) * G_ij(E).
+    //
+    // A versao sem E so e legitima quando a forma independe de E, e
+    // LANCA caso contrario -- silenciosamente devolver o primeiro no
+    // seria dar um numero plausivel e errado.
+    double G(int i, int j) const;
+    double G_leak(int j)   const;
+
+    double G(int i, int j, double E) const;
+    double G_leak(int j, double E)   const;
+
+    bool shape_depends_on_E() const { return nE_ > 1; }
+    double kernel_E_min() const { return E_nodes_.empty() ? 0.0 : std::exp(lnE_.front()); }
+    double kernel_E_max() const { return E_nodes_.empty() ? 0.0 : std::exp(lnE_.back()); }
+    int n_E_nodes() const { return nE_; }
 
     // Residuo da identidade discreta, por bin j.
-    double consistency_residual(int j) const { return residual_[static_cast<std::size_t>(j)]; }
+    // Residuo da identidade discreta, por bin j (pior sobre os nos de E).
+    double consistency_residual(int j) const;
+
+    // Quanto a soma dos pedacos, calculada com o integrador adaptativo,
+    // difere de sigma_nc(E) da propria secao de choque. Num kernel
+    // analitico e zero; num kernel de tabela mede a RESOLUCAO da grade
+    // em y -- a tabela integra por trapezio sobre os nos, o kernel
+    // integra o interpolante de forma adaptativa, e a diferenca e o
+    // erro do trapezio.
+    double worst_norm_mismatch() const;
 
     // true quando sigma_nc == 0: nao ha regeneracao, e a identidade
     // normalizada nao se aplica (a real, soma K + leak = 0, e trivial).
@@ -200,16 +263,24 @@ public:
     double Z_discrete(double gamma) const;
 
 private:
-    std::size_t idx(int i, int j) const {
-        return static_cast<std::size_t>(j)*static_cast<std::size_t>(n_) + static_cast<std::size_t>(i);
+    std::size_t idx(int e, int i, int j) const {
+        return (static_cast<std::size_t>(e)*static_cast<std::size_t>(n_)
+                + static_cast<std::size_t>(j))*static_cast<std::size_t>(n_)
+               + static_cast<std::size_t>(i);
     }
+    // peso e nos vizinhos em ln E
+    void locate(double E, int& e0, int& e1, double& t) const;
 
     const EnergyGrid& grid_;
     const DifferentialCrossSection& xsec_;
     int n_;
-    std::vector<double> G_;        // n_ x n_, so i <= j e nao nulo
-    std::vector<double> G_leak_;
-    std::vector<double> residual_;
+    int nE_ = 1;
+    std::vector<double> E_nodes_;
+    std::vector<double> lnE_;
+    std::vector<double> G_;        // nE_ x n_ x n_, so i <= j e nao nulo
+    std::vector<double> G_leak_;   // nE_ x n_
+    std::vector<double> residual_; // nE_ x n_
+    std::vector<double> norm_mismatch_;
     bool no_regeneration_ = false;
 };
 
@@ -241,6 +312,17 @@ public:
     double sigma_nc(double E_GeV) const override;
     double sigma_cc(double E_GeV) const override;
     std::string name() const override { return "TableDifferential[" + path_ + "]"; }
+
+    double E_domain_min() const override { return std::exp(lnE_.front()); }
+    double E_domain_max() const override { return std::exp(lnE_.back()); }
+
+    // Bordas da grade em y da tabela. Sao pontos de quebra reais: o
+    // corte cinematico y < Q2min/(s x_max) poe um degrau em y, e uma
+    // descontinuidade DENTRO de um painel de Simpson nao cancela entre
+    // intervalos vizinhos.
+    std::vector<double> y_breakpoints() const override;
+
+    double y_min_table() const { return std::exp(lny_.front()); }
 
     const std::string& meta(const std::string& chave) const;
 

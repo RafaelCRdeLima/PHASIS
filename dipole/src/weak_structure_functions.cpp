@@ -60,6 +60,35 @@ double WeakStructureFunctions::xF3_CC_isoscalar(
     return 0.0;
 }
 
+double WeakStructureFunctions::xF3_NC_isoscalar(
+    double x,
+    double Q2,
+    BeamType beam
+) const
+{
+    // g_V g_A por tipo, com sin^2(thetaW) = 0.23122 (parameters.hpp).
+    // Escritos aqui como literais para nao arrastar parameters.hpp
+    // para dentro do wrapper do LHAPDF.
+    constexpr double s2w = 0.23122;
+    const double gVu =  0.5 - (4.0/3.0)*s2w, gAu =  0.5;
+    const double gVd = -0.5 + (2.0/3.0)*s2w, gAd = -0.5;
+    const double Gu = gVu*gAu;
+    const double Gd = gVd*gAd;
+
+    const double xu = impl_->xf( 2, x, Q2), xub = impl_->xf(-2, x, Q2);
+    const double xd = impl_->xf( 1, x, Q2), xdb = impl_->xf(-1, x, Q2);
+    const double xs = impl_->xf( 3, x, Q2), xsb = impl_->xf(-3, x, Q2);
+    const double xc = impl_->xf( 4, x, Q2), xcb = impl_->xf(-4, x, Q2);
+
+    // Alvo isoescalar: u_N = d_N = (u_p + d_p)/2, logo a valencia de
+    // u_N e a de d_N sao ambas V/2.
+    const double V = (xu + xd) - (xub + xdb);
+
+    const double xF3 = (Gu + Gd)*V + 2.0*Gd*(xs - xsb) + 2.0*Gu*(xc - xcb);
+
+    return (beam == BeamType::Neutrino) ? xF3 : -xF3;
+}
+
 #else   // sem LHAPDF
 
 struct WeakStructureFunctions::Impl {};
@@ -78,6 +107,11 @@ WeakStructureFunctions::WeakStructureFunctions(const std::string&, int)
 WeakStructureFunctions::~WeakStructureFunctions() = default;
 
 double WeakStructureFunctions::xF3_CC_isoscalar(double, double, BeamType) const
+{
+    return 0.0;
+}
+
+double WeakStructureFunctions::xF3_NC_isoscalar(double, double, BeamType) const
 {
     return 0.0;
 }

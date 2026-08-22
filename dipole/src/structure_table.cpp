@@ -46,9 +46,10 @@ StructureTable::StructureTable(
     const QuadratureGrid& quad,
     const TableSpec& spec,
     const QuarkMasses& masses,
-    bool verbose
+    bool verbose,
+    CurrentType current
 )
-    : model_(model), channels_(channels), gbw_(gbw), iim_(iim),
+    : model_(model), channels_(channels), current_(current), gbw_(gbw), iim_(iim),
       quad_(quad), spec_(spec), masses_(masses)
 {
     if (spec_.Nx < 2 || spec_.NQ < 2) {
@@ -129,7 +130,11 @@ StructureTL StructureTable::computeAt(double x, double Q2) const
 
     for (const Channel& ch : channels_) {
 
-        Parameters wf = makeCCParameters(ch.first, ch.second, masses_);
+        // O par (m, mu) do dipolo e o que distingue as duas correntes:
+        // CC junta sabores diferentes, NC junta o mesmo sabor consigo.
+        Parameters wf = (current_ == CurrentType::NC)
+            ? makeNCParameters(ch.first, masses_)
+            : makeCCParameters(ch.first, ch.second, masses_);
 
         const StructureTL F = (model_ == DipoleModelId::GBW)
             ? structureGBW(x, Q2, wf, gbw_, quad_)
@@ -222,6 +227,7 @@ std::string StructureTable::describe() const
        << "  x in [" << spec_.xMin << ", " << spec_.xMax << "]"
        << "  Q2 in [" << spec_.Q2Min << ", " << spec_.Q2Max << "]"
        << "  quad Nr=" << quad_.Nr << " Nz=" << quad_.Nz
+       << "  corrente=" << (current_ == CurrentType::NC ? "NC" : "CC")
        << "  canais=" << channels_.size();
     return os.str();
 }

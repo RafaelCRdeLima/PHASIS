@@ -286,6 +286,36 @@ void TableCrossSection::require_full_metadata() const
     }
 }
 
+void assert_composable(const TableCrossSection& cc, const TableCrossSection& nc)
+{
+    cc.require_full_metadata();
+    nc.require_full_metadata();
+
+    static const char* iguais[] = {
+        "target", "projectile", "units_sigma", "units_E"
+    };
+    for (const char* ch : iguais) {
+        if (cc.meta(ch) != nc.meta(ch)) {
+            std::ostringstream m;
+            m << "assert_composable: '" << ch << "' difere entre as tabelas.\n"
+              << "  " << cc.path() << " : " << cc.meta(ch) << "\n"
+              << "  " << nc.path() << " : " << nc.meta(ch) << "\n"
+              << "Somar as duas nao significa nada.";
+            throw std::runtime_error(m.str());
+        }
+    }
+
+    if (cc.meta("current") != "CC" || nc.meta("current") != "NC") {
+        std::ostringstream m;
+        m << "assert_composable: esperava uma tabela CC e uma NC, e recebi\n"
+          << "  " << cc.path() << " : current = " << cc.meta("current") << "\n"
+          << "  " << nc.path() << " : current = " << nc.meta("current") << "\n"
+          << "Somar duas do mesmo current conta a mesma coisa duas vezes, e o\n"
+          << "resultado e uma secao de choque plausivel e errada por um fator 2.";
+        throw std::runtime_error(m.str());
+    }
+}
+
 void write_metadata_header(std::ostream& os, const std::string& tag,
                            const TableCrossSection& t)
 {

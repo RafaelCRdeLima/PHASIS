@@ -46,6 +46,16 @@ public:
 
     double xF3_CC_isoscalar(double x, double Q2, BeamType beam) const;
 
+    // xF3 de corrente NEUTRA, alvo isoescalar, ordem dominante:
+    //
+    //     xF3^NC = 2 Soma_q g_Vq g_Aq (x q - x qbar)
+    //
+    // usando g_L^2 - g_R^2 = g_V g_A. E puramente de VALENCIA, entao cai
+    // muito mais rapido com a energia que o termo NC total: acima de
+    // ~1e6 GeV contribui menos de 1%. Abaixo de 1e5 GeV nao e
+    // desprezivel, pelo mesmo motivo que no CC.
+    double xF3_NC_isoscalar(double x, double Q2, BeamType beam) const;
+
     // true se o binario foi compilado com LHAPDF.
     static bool available();
 

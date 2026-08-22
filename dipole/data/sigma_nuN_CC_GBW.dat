@@ -6,7 +6,7 @@
 # units_E      = GeV
 # M_Z_GeV      = 91.1876
 # dipole_model = GBW
-# generated_by = sigma_nuN (PHASIS/dipole) commit 89bbd23-sujo
+# generated_by = sigma_nuN (PHASIS/dipole) commit 1474a9b-sujo
 # M_W_GeV      = 80.379
 # xF3_from     = NNPDF31_nlo_as_0118
 # model GBW

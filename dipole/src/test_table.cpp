@@ -52,7 +52,7 @@ StructureTable montar(int Nx, int NQ, int Nr, int Nz, double logEmax = 14.0)
     };
 
     return StructureTable(DipoleModelId::GBW, canais, gbw, iim,
-                          quad, spec, masses, false);
+                          quad, spec, masses, false, CurrentType::CC);
 }
 
 } // namespace

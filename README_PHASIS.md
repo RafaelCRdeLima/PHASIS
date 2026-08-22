@@ -917,3 +917,174 @@ coeficiente de **cada** ponto pedido até o fim da chamada — 266 MB + 0,95 MB 
 ponto. Pedir os 8591 pontos de uma vez custa 8,4 GB, e numa máquina de 15 GB com
 2 GB de swap isso trava o sistema inteiro sem disparar o OOM-killer. Aconteceu.
 Fatiado, o consumo é constante e uma interrupção custa uma fatia.
+
+## Corrente neutra (T44–T50)
+
+Fecha o **P6**, e resolve o **P3** no caminho.
+
+### D10 — duas metades que pareciam se contradizer
+
+O comentário antigo dizia, na mesma respiração, que `α_NC` estava um fator 2
+baixo e que a checagem numérica dava o valor certo do SM. As duas coisas são
+verdade, e são **fatores 2 diferentes**.
+
+**O valor estava errado.** Escrevendo o vértice como `C γ^μ(g_V − g_A γ₅)`, o Z
+dá `C = g_Z/2 = g/(2 cos θ_W)`, e a convenção deste código é `α_EW = C²/4π`. Com
+`g² = 4√2 G_F M_W²` e `M_W = M_Z cos θ_W`:
+
+```
+α_NC = √2 G_F M_Z² / 4π
+```
+
+O antigo era `G_F M_Z²/(√2·4π)` — exatamente metade. Confere com o CC pela mesma
+rota: `C_CC = g/(2√2)` dá `α_CC = G_F M_W²/(√2·4π)`, que é o que estava escrito e
+está certo.
+
+**E não muda σ.** `StructureTable::computeAt` divide `F_T` e `F_L` pelo `α_EW`
+**do próprio canal** (`structure_table.cpp:140`) — é a convenção DIS: toda a
+normalização eletrofraca de σ vem de `G_F²` e do propagador na fórmula mestra, e
+o que sobra em `F` é a soma efetiva de cargas. Então `α_NC` cancela.
+
+Por isso a checagem antiga estava certa mesmo com o valor errado: ela mede a
+razão das **somas de carga**, onde `α` já saiu.
+
+### Uma fórmula mestra, duas correntes
+
+`d2sigma_dxdQ2_param` e `d2sigma_dxdy_param` chamam o mesmo núcleo. A única
+constante que distingue CC de NC é `M_V` (`bosonMass2`) e de onde vem `xF₃`.
+Escrever as duas como uma função não é economia de linhas: é a garantia de que
+não possam divergir — a razão `σ_NC/σ_CC` só significa algo se o resto for
+idêntico, e aqui é o mesmo código.
+
+O refactor foi verificado: a tabela CC saiu **bit a bit idêntica** à anterior, em
+300 energias.
+
+O CC junta dois sabores num dipolo (`ud̄`, `cs̄`): 2 canais. O NC junta o mesmo
+sabor consigo (`uū`, `dd̄`, `ss̄`, `cc̄`): 4 canais. Mesma população de quarks,
+contagem diferente de dipolos — e é daí que vem a maior parte da razão, não do
+acoplamento.
+
+```
+Σ_NC (g_V² + g_A²) sobre u,d,s,c = 1,3127     (= o C de KK eq. 15)
+Σ_CC (g_V² + g_A²) sobre ud, cs  = 4
+razão × (M_Z/M_W)² = (1,3127/4)(1,2870) = 0,4224
+```
+
+Medido nas tabelas de produção:
+
+| E (GeV) | σ_CC (cm²) | σ_NC (cm²) | razão |
+|---|---|---|---|
+| 1e3 | 3,741e-36 | 1,140e-36 | 0,3047 |
+| 1e5 | 2,047e-34 | 7,335e-35 | 0,3584 |
+| 1e7 | 1,777e-33 | 7,025e-34 | 0,3953 |
+| 1e9 | 7,400e-33 | 3,001e-33 | 0,4055 |
+| 1e11 | 2,521e-32 | 1,032e-32 | 0,4093 |
+| 1e13 | 7,961e-32 | 3,281e-32 | 0,4122 |
+
+A razão **cresce** com a energia porque o `xF₃` do CC domina embaixo (é de
+valência: +70% em 1e3 GeV, +0,16% em 1e14) e some em cima. O assintótico,
+0,409, fica 3% abaixo dos 0,4224 da contagem de cargas — a diferença é efeito de
+massa do charme, que a contagem ignora.
+
+### Um bug meu, e o que o pegou
+
+A primeira tabela NC deu `σ_NC/σ_CC = 2,49` em vez de 0,42. Os canais eram
+`uu, dd, ss, cc` mas os **acoplamentos continuaram CC** (`g_V=−1, g_A=+1`),
+porque o argumento `current` simplesmente não foi passado ao construtor da
+tabela — e ele tinha valor padrão `CC`.
+
+O resultado era plausível: tabela lisa, monotônica, sem exceção, com `α_eff`
+bem-comportado. Só o valor era errado. O que denunciou foi o **teste de física**
+— σ_NC/σ_CC tem de dar 0,42 — e não nada interno ao código.
+
+O conserto estrutural foi tirar o valor padrão. O compilador imediatamente
+apontou o segundo call site (`test_table.cpp:55`), que eu não teria lembrado de
+olhar. Um default silencioso num parâmetro que muda a **física** é um convite.
+
+### A tabela dσ/dy, e o corte cinemático
+
+`dσ/dy` só é não nula para `y ≥ Q2min/(s·x_max)`, e esse limite **depende da
+energia** (cai como 1/E). O formato de tabela exige uma grade em `y` comum a
+todas as energias.
+
+A escolha: `y_min` da grade é o corte na energia **mais alta**, e nas energias
+mais baixas as linhas abaixo do próprio corte saem zeradas. São zeros de verdade
+— consequência de `Q² ≥ Q2min` — não lacunas. A alternativa esconderia, nas
+energias altas, a faixa de `y` pequeno que a cascata mais usa: `y` pequeno é
+perda de energia pequena, que é o regime onde o kernel de regeneração pesa.
+
+O cabeçalho reporta, por energia, que fração de σ a integral em `y` recupera. Com
+120 nós log-espaçados: 0,9988 em 1e3 GeV, **1,0104** em 1e14. O 1% é o erro do
+trapézio, e está medido, não estimado.
+
+### A "Fase 4b": kernel com forma dependente de E
+
+`CascadeKernel` **lançava** para qualquer seção de choque com forma em `y`
+dependente de E. A tabela real depende — e muito:
+
+```
+g(y) = (dσ/dy)/σ_NC        E=1e5      E=1e8      E=1e11
+   y = 1e-3                1,326     43,342     53,621
+   y = 1e-2                1,897     10,414      9,506
+   y = 0,5                 0,843      0,373      0,308
+```
+
+Fator **40** de variação entre 1e5 e 1e11 GeV. Congelar a forma seria erro
+grosseiro.
+
+A rota construída: tabelar `G_ij` em nós **log-E** e interpolar **linearmente**
+em `ln E`. A linearidade não é conveniência:
+
+> A identidade de consistência `Σ_i G_ij + G_leak_j = 1` é **linear** nos `G`.
+> Interpolação linear de um conjunto que soma 1 em cada nó ainda soma 1 entre os
+> nós.
+
+Ou seja, a cascata conserva número **exatamente em qualquer E**, não só nos nós.
+Com interpolação cúbica isso deixaria de valer, e o erro apareceria como fluxo
+criado ou destruído do nada ao longo do raio — o tipo de erro que nenhuma
+checagem a jusante pegaria.
+
+Medido: resíduo **2,22e-16** nos nós *e entre* eles. Seis nós em `ln E` já
+resolvem a forma (diferença de 3,9e-3 contra doze nós).
+
+Os intervalos em `y` que ligam o bin `j` ao bin `i` **não** dependem de `E_loc`:
+`y` é invariante sob redshift e as bordas dos bins estão em `E_inf`. Só o
+argumento de `dσ/dy` varia. É por isso que dá para tabelar em E de uma vez e
+nunca mais reintegrar.
+
+**Normalização pela soma dos pedaços, não por `σ_nc`.** Os intervalos particionam
+`[0,1]` exatamente, então a soma dos pedaços *é* a integral — calculada com o
+mesmo integrador adaptativo que calculou cada pedaço. Dividir por `σ_nc`, que num
+kernel de tabela vem de um trapézio sobre os nós em `y`, misturaria dois
+integradores e a identidade não fecharia. A diferença entre os dois não é
+escondida: fica em `worst_norm_mismatch()`, e vale **1,04%** — é a resolução da
+grade em `y`.
+
+### `assert_composable` — o guarda oposto
+
+`assert_comparable` exige `current` **igual**: é o guarda certo para dipolo
+contra colinear.
+
+Somar CC com NC é o caso oposto: as duas tabelas têm de ter `current` diferente,
+e uma tem de ser CC e a outra NC. Somar duas tabelas de CC contaria a mesma coisa
+duas vezes, e é um erro que passaria calado — o resultado seria uma seção de
+choque perfeitamente plausível, duas vezes grande demais.
+
+### Ponta a ponta
+
+Com `σ_CC` zerada, a NC só redistribui e vaza: `Σφ + vazamento` conserva a
+**4,4e-16**. Com absorção CC ligada, a regeneração aumenta o fluxo sobrevivente
+em **+4,5%** sobre a mesma geometria sem regeneração.
+
+### Gerar as tabelas
+
+```bash
+export PATH=/home/rafael/micromamba/envs/dis/bin:$PATH
+export LD_LIBRARY_PATH=/home/rafael/micromamba/envs/dis/lib:$LD_LIBRARY_PATH
+cd dipole
+./build/sigma_nuN --model GBW --current NC --NE 300 --logEmin 3 --logEmax 14 \
+    --nY 120 --use-F3 1 --pdf-set NNPDF31_nlo_as_0118      # ~95 s
+```
+
+Produz `data/sigma_nuN_NC_GBW.dat` e `data/dsigma_dy_NC_GBW.dat`, ambos com as
+nove chaves e o hash do commit.

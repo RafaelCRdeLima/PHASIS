@@ -147,73 +147,136 @@ double PowerLawY::Z_analytic(double gamma, int n_quad) const
 CascadeKernel::CascadeKernel(const EnergyGrid& grid,
                              const DifferentialCrossSection& xsec,
                              double consistency_tol,
-                             int /*n_y_quad, obsoleto: a quadratura e adaptativa*/)
+                             int /*n_y_quad, obsoleto: a quadratura e adaptativa*/,
+                             int n_E_nodes,
+                             double E_lo, double E_hi)
     : grid_(grid), xsec_(xsec), n_(grid.n())
 {
-    if (!xsec.shape_is_E_independent()) {
-        throw std::runtime_error(
-            "CascadeKernel: esta fase so implementa kernels com forma de y "
-            "independente de E (dsigma/dy = sigma_nc(E) g(y)). Um kernel com "
-            "forma dependente de E exige K_ij(E) tabelada -- ver Fase 4b.");
+    // ---- nos em E ----------------------------------------------------
+    //
+    // Forma independente de E: um no so, e G(i,j) vale em toda parte.
+    // Forma dependente de E: nos log-espacados, e G(i,j,E) interpola
+    // LINEARMENTE em ln E -- ver o comentario da classe sobre por que a
+    // interpolacao tem de ser linear.
+    if (xsec.shape_is_E_independent()) {
+        nE_ = 1;
+        E_nodes_.assign(1, grid.center(0));
+    } else {
+        if (n_E_nodes < 2) n_E_nodes = 2;
+        // Faixa automatica: a grade toda, com folga de 2x para cima e
+        // para baixo. O boost maximo do redshift em Schwarzschild e
+        // sqrt(3) = 1.73, entao 2 cobre com margem.
+        double lo = (E_lo > 0.0) ? E_lo : 0.5*grid.E_min();
+        double hi = (E_hi > 0.0) ? E_hi : 2.0*grid.E_max();
+        lo = std::max(lo, xsec.E_domain_min());
+        hi = std::min(hi, xsec.E_domain_max());
+        if (!(hi > lo)) {
+            std::ostringstream m;
+            m << "CascadeKernel: a faixa de E pedida [" << lo << ", " << hi
+              << "] esta vazia depois de cortada pelo dominio de "
+              << xsec.name() << ". A tabela nao cobre a grade de energia.";
+            throw std::runtime_error(m.str());
+        }
+        nE_ = n_E_nodes;
+        E_nodes_.resize(static_cast<std::size_t>(nE_));
+        for (int e = 0; e < nE_; ++e) {
+            E_nodes_[static_cast<std::size_t>(e)] =
+                lo*std::pow(hi/lo, static_cast<double>(e)/(nE_ - 1));
+        }
     }
+    lnE_.resize(E_nodes_.size());
+    for (std::size_t e = 0; e < E_nodes_.size(); ++e) lnE_[e] = std::log(E_nodes_[e]);
 
-    G_.assign(static_cast<std::size_t>(n_)*static_cast<std::size_t>(n_), 0.0);
-    G_leak_.assign(static_cast<std::size_t>(n_), 0.0);
-    residual_.assign(static_cast<std::size_t>(n_), 0.0);
-
-    // Energia de referencia: como a forma independe de E, qualquer uma
-    // serve para extrair g(y). Normalizamos por sigma_nc na MESMA energia.
-    const double E_ref = grid.center(0);
-    const double s_ref = xsec.sigma_nc(E_ref);
+    const std::size_t NN = static_cast<std::size_t>(n_)*static_cast<std::size_t>(n_);
+    G_.assign(static_cast<std::size_t>(nE_)*NN, 0.0);
+    G_leak_.assign(static_cast<std::size_t>(nE_)*static_cast<std::size_t>(n_), 0.0);
+    residual_.assign(static_cast<std::size_t>(nE_)*static_cast<std::size_t>(n_), 0.0);
 
     // Caso degenerado: sem NC nao ha o que redistribuir. A identidade
     // NORMALIZADA (soma G = 1) e 0/0 e nao faz sentido; a identidade
     // real, soma_i K_ij + leak_j = sigma_nc = 0, vale trivialmente.
     // G fica tudo zero e o residuo e zero, nao -1.
-    if (!(s_ref > 0.0)) {
+    if (!(xsec.sigma_nc(E_nodes_[0]) > 0.0) && nE_ == 1) {
         no_regeneration_ = true;
         return;
     }
+
     const std::vector<double> quebras = xsec.y_breakpoints();
 
-    // Tolerancia ABSOLUTA por pedaco, escalada por sigma_nc. E o que
-    // garante que a soma de muitos pedacos ainda feche a identidade.
-    const double abs_piece = 1.0e-16*std::fabs(s_ref);
-
-    for (int j = 0; j < n_; ++j) {
-        const double Ej = grid.center(j);
-
-        double soma = 0.0;
-
-        for (int i = 0; i <= j; ++i) {
-            // E = (1-y) Ej cai no bin i  <=>  y em
-            //   [ 1 - edge(i+1)/Ej , 1 - edge(i)/Ej ]
-            double y0 = 1.0 - grid.edge(i + 1)/Ej;
-            double y1 = 1.0 - grid.edge(i)/Ej;
-            y0 = std::max(0.0, y0);
-            y1 = std::min(1.0, y1);
-            if (!(y1 > y0)) continue;
-
-            const double v = (s_ref > 0.0)
-                           ? integra_g(xsec, E_ref, y0, y1, abs_piece, quebras)/s_ref
-                           : 0.0;
-            G_[idx(i, j)] = v;
-            soma += v;
+    for (int e = 0; e < nE_; ++e) {
+        const double E_ref = E_nodes_[static_cast<std::size_t>(e)];
+        const double s_ref = xsec.sigma_nc(E_ref);
+        if (!(s_ref > 0.0)) {
+            if (nE_ == 1) { no_regeneration_ = true; return; }
+            throw std::runtime_error(
+                "CascadeKernel: sigma_nc <= 0 num no interno da tabela de E.");
         }
 
-        // Vazamento: y acima do que leva ao fundo da grade.
-        // RASTREADO, nunca absorvido no bin de baixo.
-        double yl = 1.0 - grid.edge(0)/Ej;
-        yl = std::max(0.0, std::min(1.0, yl));
-        const double leak = (s_ref > 0.0 && yl < 1.0)
-                          ? integra_g(xsec, E_ref, yl, 1.0, abs_piece, quebras)/s_ref
-                          : 0.0;
-        G_leak_[static_cast<std::size_t>(j)] = leak;
-        soma += leak;
+        // Tolerancia ABSOLUTA por pedaco, escalada por sigma_nc. E o que
+        // garante que a soma de muitos pedacos ainda feche a identidade.
+        const double abs_piece = 1.0e-16*std::fabs(s_ref);
 
-        // Identidade discreta: os intervalos particionam [0,1], logo a
-        // soma normalizada tem de dar 1.
-        residual_[static_cast<std::size_t>(j)] = soma - 1.0;
+        for (int j = 0; j < n_; ++j) {
+            const double Ej_inf = grid.center(j);
+
+            // Os intervalos em y NAO dependem de E_loc: y e invariante
+            // sob redshift e as bordas dos bins estao em E_inf.
+            double soma = 0.0;
+            for (int i = 0; i <= j; ++i) {
+                double y0 = 1.0 - grid.edge(i + 1)/Ej_inf;
+                double y1 = 1.0 - grid.edge(i)/Ej_inf;
+                y0 = std::max(0.0, y0);
+                y1 = std::min(1.0, y1);
+                if (!(y1 > y0)) continue;
+
+                const double v = integra_g(xsec, E_ref, y0, y1, abs_piece, quebras);
+                G_[idx(e, i, j)] = v;
+                soma += v;
+            }
+
+            // Vazamento: y acima do que leva ao fundo da grade.
+            // RASTREADO, nunca absorvido no bin de baixo.
+            double yl = 1.0 - grid.edge(0)/Ej_inf;
+            yl = std::max(0.0, std::min(1.0, yl));
+            const double leak = (yl < 1.0)
+                ? integra_g(xsec, E_ref, yl, 1.0, abs_piece, quebras)
+                : 0.0;
+            G_leak_[static_cast<std::size_t>(e)*static_cast<std::size_t>(n_)
+                    + static_cast<std::size_t>(j)] = leak;
+            soma += leak;
+
+            // NORMALIZACAO PELA SOMA DOS PEDACOS, nao por sigma_nc.
+            //
+            // Os intervalos particionam [0,1] exatamente, entao a soma
+            // dos pedacos E a integral de dsigma/dy em [0,1] -- calculada
+            // com o MESMO integrador adaptativo que calculou cada pedaco.
+            // Dividir por sigma_nc, que num kernel de tabela vem de um
+            // trapezio sobre os nos em y, misturaria dois integradores e
+            // a identidade nao fecharia: sobraria a diferenca entre eles,
+            // que aparece como fluxo criado ou destruido ao longo do raio.
+            //
+            // A diferenca entre os dois NAO e escondida: fica em
+            // norm_mismatch(), e mede a resolucao da grade em y.
+            if (!(soma > 0.0)) {
+                residual_[static_cast<std::size_t>(e)*static_cast<std::size_t>(n_)
+                          + static_cast<std::size_t>(j)] = 0.0;
+                continue;
+            }
+            for (int i = 0; i <= j; ++i) G_[idx(e, i, j)] /= soma;
+            G_leak_[static_cast<std::size_t>(e)*static_cast<std::size_t>(n_)
+                    + static_cast<std::size_t>(j)] /= soma;
+
+            double conf = 0.0;
+            for (int i = 0; i <= j; ++i) conf += G_[idx(e, i, j)];
+            conf += G_leak_[static_cast<std::size_t>(e)*static_cast<std::size_t>(n_)
+                            + static_cast<std::size_t>(j)];
+            residual_[static_cast<std::size_t>(e)*static_cast<std::size_t>(n_)
+                      + static_cast<std::size_t>(j)] = conf - 1.0;
+
+            if (j == n_ - 1) {
+                norm_mismatch_.push_back(soma/s_ref - 1.0);
+            }
+        }
     }
 
     const double pior = worst_residual();
@@ -225,6 +288,89 @@ CascadeKernel::CascadeKernel(const EnergyGrid& grid,
           << ". A cascata nao conservaria numero.";
         throw std::runtime_error(m.str());
     }
+}
+
+void CascadeKernel::locate(double E, int& e0, int& e1, double& t) const
+{
+    if (nE_ == 1) { e0 = e1 = 0; t = 0.0; return; }
+
+    const double x = std::log(E);
+    if (!(x >= lnE_.front()) || !(x <= lnE_.back())) {
+        std::ostringstream m;
+        m << "CascadeKernel: E = " << E << " GeV fora da faixa tabelada ["
+          << std::exp(lnE_.front()) << ", " << std::exp(lnE_.back())
+          << "]. O kernel nao extrapola: a forma em y fora da faixa nao foi "
+             "medida, e inventa-la produziria uma cascata plausivel e errada.";
+        throw std::out_of_range(m.str());
+    }
+    const auto it = std::upper_bound(lnE_.begin(), lnE_.end(), x);
+    std::size_t k = static_cast<std::size_t>(it - lnE_.begin());
+    if (k == 0) k = 1;
+    if (k >= lnE_.size()) k = lnE_.size() - 1;
+    e0 = static_cast<int>(k) - 1;
+    e1 = static_cast<int>(k);
+    t  = (x - lnE_[static_cast<std::size_t>(e0)])
+       / (lnE_[static_cast<std::size_t>(e1)] - lnE_[static_cast<std::size_t>(e0)]);
+}
+
+double CascadeKernel::G(int i, int j) const
+{
+    if (nE_ > 1) {
+        throw std::logic_error(
+            "CascadeKernel::G(i,j) sem energia: a forma em y desta secao de "
+            "choque DEPENDE de E. Use G(i,j,E). Devolver o primeiro no seria "
+            "dar um numero plausivel e errado.");
+    }
+    return G_[idx(0, i, j)];
+}
+
+double CascadeKernel::G_leak(int j) const
+{
+    if (nE_ > 1) {
+        throw std::logic_error(
+            "CascadeKernel::G_leak(j) sem energia: a forma depende de E. "
+            "Use G_leak(j,E).");
+    }
+    return G_leak_[static_cast<std::size_t>(j)];
+}
+
+double CascadeKernel::G(int i, int j, double E) const
+{
+    int e0, e1; double t;
+    locate(E, e0, e1, t);
+    const double a = G_[idx(e0, i, j)];
+    if (e0 == e1) return a;
+    return a + t*(G_[idx(e1, i, j)] - a);
+}
+
+double CascadeKernel::G_leak(int j, double E) const
+{
+    int e0, e1; double t;
+    locate(E, e0, e1, t);
+    const std::size_t nn = static_cast<std::size_t>(n_);
+    const double a = G_leak_[static_cast<std::size_t>(e0)*nn + static_cast<std::size_t>(j)];
+    if (e0 == e1) return a;
+    const double b = G_leak_[static_cast<std::size_t>(e1)*nn + static_cast<std::size_t>(j)];
+    return a + t*(b - a);
+}
+
+double CascadeKernel::worst_norm_mismatch() const
+{
+    double p = 0.0;
+    for (double v : norm_mismatch_) p = std::max(p, std::fabs(v));
+    return p;
+}
+
+double CascadeKernel::consistency_residual(int j) const
+{
+    double p = 0.0;
+    const std::size_t nn = static_cast<std::size_t>(n_);
+    for (int e = 0; e < nE_; ++e) {
+        const double r = residual_[static_cast<std::size_t>(e)*nn
+                                   + static_cast<std::size_t>(j)];
+        if (std::fabs(r) > std::fabs(p)) p = r;
+    }
+    return p;
 }
 
 double CascadeKernel::worst_residual() const
@@ -260,6 +406,11 @@ double CascadeKernel::worst_residual() const
 // esquema binado algo que ele nao pode dar; contra sigma_eff,disc, sim.
 double CascadeKernel::Z_discrete(double gamma) const
 {
+    if (nE_ > 1) {
+        throw std::logic_error(
+            "CascadeKernel::Z_discrete: so faz sentido com forma independente "
+            "de E; com forma dependente de E nao ha um unico Z.");
+    }
     // Longe das bordas a convolucao e limpa: tomamos o bin do topo, que
     // e o que tem a cadeia completa de destinos abaixo dele.
     const int j = n_ - 1;
@@ -267,7 +418,7 @@ double CascadeKernel::Z_discrete(double gamma) const
 
     double z = 0.0;
     for (int i = 0; i <= j; ++i) {
-        const double g = G_[idx(i, j)];
+        const double g = G_[idx(0, i, j)];
         if (g == 0.0) continue;
         const int d = j - i;
         z += g*std::pow(rho, -d*(gamma - 1.0));
@@ -340,8 +491,14 @@ struct CascadeCtx {
             dy[static_cast<std::size_t>(i)] -= nN*st*y[static_cast<std::size_t>(i)]*dl;
         }
 
-        // ganho + vazamento. G_ij nao depende de l: so o coeficiente
-        // sigma_nc(E_loc_j) varia.
+        // Ganho + vazamento.
+        //
+        // Os INTERVALOS em y que ligam j a i nao dependem de l -- y e
+        // invariante sob redshift e as bordas dos bins estao em E_inf.
+        // Com kernel analitico a FORMA tambem nao depende, e G_ij e uma
+        // constante. Com tabela real a forma depende de E, e G_ij(E_loc)
+        // e interpolado em ln E a partir dos nos montados uma vez na
+        // construcao -- nunca reintegrado por passo.
         for (int j = 0; j < N; ++j) {
             const double pj = y[static_cast<std::size_t>(j)];
             if (pj == 0.0) continue;
@@ -351,10 +508,10 @@ struct CascadeCtx {
 
             const double coef = nN*snc*pj*dl;
             for (int i = 0; i <= j; ++i) {
-                const double g = ker.G(i, j);
+                const double g = ker.G(i, j, El);
                 if (g != 0.0) dy[static_cast<std::size_t>(i)] += coef*g;
             }
-            dy[static_cast<std::size_t>(N)] += coef*ker.G_leak(j);
+            dy[static_cast<std::size_t>(N)] += coef*ker.G_leak(j, El);
         }
     }
 };
@@ -594,6 +751,22 @@ TableDifferentialCrossSection::TableDifferentialCrossSection(
         }
         snc_[a] = acc;
     }
+}
+
+std::vector<double> TableDifferentialCrossSection::y_breakpoints() const
+{
+    // So a BORDA DO SUPORTE. Abaixo de y_min a tabela devolve zero e
+    // acima dela o valor e finito: isso e um SALTO, e um salto dentro de
+    // um painel de Simpson nao cancela entre intervalos vizinhos -- e
+    // exatamente a classe de bug que custou um fator 670 de ruido no
+    // dipole.
+    //
+    // Os nos internos da grade em y sao apenas quebras de DERIVADA (a
+    // interpolacao bilinear e C^0). Simpson sobre uma quebra de derivada
+    // erra em O(h^3), nao em O(h): devolve-los todos aqui subdividiria
+    // cada um dos ~1800 intervalos em 120 pedacos, por um erro que ja e
+    // menor que o do proprio trapezio que gerou sigma_nc.
+    return { std::exp(lny_.front()), std::exp(lny_.back()) };
 }
 
 const std::string& TableDifferentialCrossSection::meta(const std::string& chave) const
