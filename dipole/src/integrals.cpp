@@ -6,7 +6,6 @@
 #include <stdexcept>
 #include <vector>
 
-#include <boost/math/special_functions/bessel.hpp>
 
 namespace dipole {
 
@@ -146,8 +145,8 @@ StructureTL structureFunctionsTL(
 
                 const double arg = std::sqrt(eps2v)*r;
 
-                const double K0 = boost::math::cyl_bessel_k(0, arg);
-                const double K1 = boost::math::cyl_bessel_k(1, arg);
+                double K0, K1;
+                besselK01(arg, K0, K1);
 
                 FT += wr * wz * psiT2_pre(z, Q2, wf, eps2v, K0, K1);
                 FL += wr * wz * psiL2_pre(z, Q2, wf, eps2v, K0, K1);

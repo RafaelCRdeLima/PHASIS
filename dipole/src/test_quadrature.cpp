@@ -25,6 +25,9 @@ using namespace dipole;
 
 namespace {
 
+double besselK0_(double a){ double k0,k1; besselK01(a,k0,k1); return k0; }
+double besselK1_(double a){ double k0,k1; besselK01(a,k0,k1); return k1; }
+
 const double F2_REF     = 18.0;
 const double FL_F2_REF  = 0.099;
 
@@ -96,9 +99,9 @@ int main()
 
         // KK eq (12) e (13)
         const double kkT = 6.0/(pi*pi)*(zz*zz + (1-zz)*(1-zz))*Qb2
-                         * std::pow(std::cyl_bessel_k(1, std::sqrt(Qb2)*rr), 2);
+                         * std::pow(besselK1_(std::sqrt(Qb2)*rr), 2);
         const double kkL = 24.0/(pi*pi)*zz*zz*(1-zz)*(1-zz)*QQ
-                         * std::pow(std::cyl_bessel_k(0, std::sqrt(Qb2)*rr), 2);
+                         * std::pow(besselK0_(std::sqrt(Qb2)*rr), 2);
 
         double codT = 0.0, codL = 0.0;
         const QuarkFlavor pares[2][2] = {
@@ -109,10 +112,9 @@ int main()
             Parameters wf = makeCCParameters(par[0], par[1], leves);
             const double e2 = epsilon2(zz, QQ, wf);
             const double ar = std::sqrt(e2)*rr;
-            codT += psiT2_pre(zz, QQ, wf, e2, std::cyl_bessel_k(0, ar),
-                              std::cyl_bessel_k(1, ar)) / wf.alphaEW;
-            codL += psiL2_pre(zz, QQ, wf, e2, std::cyl_bessel_k(0, ar),
-                              std::cyl_bessel_k(1, ar)) / wf.alphaEW;
+            double k0, k1; besselK01(ar, k0, k1);
+            codT += psiT2_pre(zz, QQ, wf, e2, k0, k1) / wf.alphaEW;
+            codL += psiL2_pre(zz, QQ, wf, e2, k0, k1) / wf.alphaEW;
         }
 
         checa("|psi_T|^2  vs KK eq (12)", codT, kkT, 1.0e-6);

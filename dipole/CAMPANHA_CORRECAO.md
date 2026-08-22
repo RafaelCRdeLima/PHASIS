@@ -98,23 +98,27 @@ referência externo, só da suavidade que a física exige. `tests/test_condition
 
 ## 2. Ambiente
 
+**O cálculo em C++ não depende de nada além de `g++` com C++17.**
+
 ```bash
-export CONDA_PREFIX=/home/rafael/micromamba/envs/dis
-export PATH=$CONDA_PREFIX/bin:$PATH
-export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+cd dipole
+make env      # mostra o que foi detectado
+make check    # compila e roda a bateria completa
 ```
 
-- g++ 13.3.0, C++17
-- boost 1.85 (headers) — `boost::math::cyl_bessel_k`
-- LHAPDF 6.5.6, sets instalados: `CT10nlo`, `NNPDF31_nlo_as_0118`
-- Dados HERA NC e+p (490 pontos, √s=318 GeV, H1+ZEUS EPJ C75 (2015) 580):
-  `/home/rafael/Codes/HADROS3/sandbox/data/hera/hera_nc_ep_920.dat`
-  colunas: `Q2[GeV^2]  x  y  sigma_red  err`
-
-`.git` está presente mas `git log` falha — a cópia veio incompleta. **Reclonar ou reinicializar
-antes de começar**, senão a campanha roda sem rede de segurança.
-
----
+- **Bessel:** `std::cyl_bessel_k` (C++17, ISO 29124), não boost. Confere com
+  `boost::math::cyl_bessel_k` a 2,7e-16 em argumentos de 1e-8 a 500, e a troca foi verificada
+  **bit-a-bit** numa tabela de 300 pontos. Precisa de guarda no argumento grande: o libstdc++
+  *lança exceção* acima de ~1e6, enquanto o boost devolvia zero por underflow — daí
+  `besselK01()` em `include/wavefunctions.hpp`, que zera acima de 700 (onde K < 1e-305).
+- **OpenMP:** usado se disponível; só acelera a montagem da tabela.
+- **LHAPDF:** opcional, só para xF₃ (`--use-F3 1`). O Makefile detecta `lhapdf-config` e liga
+  `-DWITH_LHAPDF`; sem ele o tipo do LHAPDF fica escondido num pimpl e tudo funciona. xF₃ é
+  contribuição de valência: 5,8% em 1e3 GeV, 0,006% em 1e9.
+- **Python** (`requirements.txt`): só para as figuras e para o oráculo de teste.
+- **Dados do HERA:** `dipole/data/hera/hera_nc_ep_920.dat`, 485 pontos, H1+ZEUS combinados
+  (EPJ C75 (2015) 580). Versionados no projeto — é o dado a que GBW e bCGC foram ajustados, e
+  portanto o teste de validação do formalismo.
 
 ## 3. Inventário de defeitos
 

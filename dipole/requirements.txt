@@ -1,0 +1,6 @@
+# Necessario apenas para os scripts de figura (plots/) e para o oraculo
+# de teste em Python (tests/). O calculo em si -- C++ -- nao depende de
+# nada alem de g++ com C++17.
+numpy
+scipy
+matplotlib

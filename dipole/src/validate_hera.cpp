@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
 
     std::string flavor_set = "uds";
     std::string data_file =
-        "/home/rafael/Codes/HADROS3/sandbox/data/hera/hera_nc_ep_920.dat";
+        "data/hera/hera_nc_ep_920.dat";
     std::string out_file = "data/hera_validation.dat";
     std::string model = "GBW";
     double iim_x0 = -1.0;

@@ -4,11 +4,43 @@
 
 CXX := g++
 
-# -MMD -MP gera .d com as dependencias de header. Sem isso, editar
-# include/*.hpp NAO dispara recompilacao -- e a campanha edita headers.
-CXXFLAGS := -O3 -std=c++17 -Wall -Wextra -fopenmp -MMD -MP -Iinclude -I$(CONDA_PREFIX)/include $(shell lhapdf-config --cflags)
-LDFLAGS  := -fopenmp -L$(CONDA_PREFIX)/lib $(shell lhapdf-config --libs)
+# =====================================================
+# Dependencias
+#
+# OBRIGATORIO: g++ com C++17. Nada mais.
+#   As funcoes de Bessel vem de std::cyl_bessel_k (C++17, ISO 29124),
+#   nao do boost. Conferido contra boost a 2.7e-16.
+#
+# OPCIONAL: LHAPDF, so para o termo xF3 (--use-F3 1). Detectado
+#   automaticamente abaixo. Sem ele tudo funciona, menos --use-F3 1.
+#   xF3 e contribuicao de valencia: vale 5.8% em 1e3 GeV e 0.006%
+#   em 1e9 GeV.
+# =====================================================
 
+LHAPDF_CONFIG := $(shell command -v lhapdf-config 2>/dev/null)
+
+ifeq ($(LHAPDF_CONFIG),)
+  LHAPDF_CXXFLAGS :=
+  LHAPDF_LDFLAGS  :=
+  LHAPDF_STATUS   := ausente (--use-F3 1 indisponivel)
+else
+  LHAPDF_CXXFLAGS := -DWITH_LHAPDF $(shell $(LHAPDF_CONFIG) --cflags)
+  LHAPDF_LDFLAGS  := $(shell $(LHAPDF_CONFIG) --libs)
+  LHAPDF_STATUS   := $(shell $(LHAPDF_CONFIG) --version)
+endif
+
+# -MMD -MP gera .d com as dependencias de header. Sem isso, editar
+# include/*.hpp NAO dispara recompilacao.
+CXXFLAGS := -O3 -std=c++17 -Wall -Wextra -fopenmp -MMD -MP -Iinclude $(LHAPDF_CXXFLAGS)
+LDFLAGS  := -fopenmp $(LHAPDF_LDFLAGS)
+
+.PHONY: env
+env:
+	@echo "CXX      : $(shell $(CXX) --version | head -1)"
+	@echo "OpenMP   : $(shell $(CXX) -fopenmp -x c++ -E /dev/null >/dev/null 2>&1 && echo sim || echo nao)"
+	@echo "LHAPDF   : $(LHAPDF_STATUS)"
+	@echo "Bessel   : std::cyl_bessel_k (C++17, sem boost)"
+	@echo "Dados    : data/hera/hera_nc_ep_920.dat ($(shell grep -vc '^\#' data/hera/hera_nc_ep_920.dat 2>/dev/null) pontos)"
 
 # =====================================================
 # Diretórios
@@ -53,7 +85,13 @@ DIPOLE_MODEL := GBW
 # =====================================================
 # F3
 
-USE_F3 := 1
+# USE_F3 acompanha a disponibilidade do LHAPDF: 1 se presente, 0 se nao.
+# Sobrescrevivel:  make sigma-nuN USE_F3=0
+ifeq ($(LHAPDF_CONFIG),)
+  USE_F3 := 0
+else
+  USE_F3 := 1
+endif
 # PDF_SET := NNPDF31_nlo_as_0118
 PDF_SET := CT10nlo
 BEAM := nu
@@ -181,7 +219,7 @@ plot-sigma: sigma
 # =====================================================
 
 scan-x: dirs $(SCAN_X)
-	LD_LIBRARY_PATH=$(CONDA_PREFIX)/lib:$$LD_LIBRARY_PATH $(SCAN_X) \
+	$(SCAN_X) \
 		--use-F3 $(USE_F3) \
 		--pdf-set $(PDF_SET) \
 		--beam $(BEAM)
@@ -205,7 +243,7 @@ plot-scan-x: scan-x
 # =====================================================
 
 sigma-nuN: dirs $(SIGMA_NUN)
-	LD_LIBRARY_PATH=$(CONDA_PREFIX)/lib:$$LD_LIBRARY_PATH $(SIGMA_NUN) \
+	$(SIGMA_NUN) \
 		--model $(DIPOLE_MODEL) \
 		--logEmin $(LOGEMIN) \
 		--logEmax $(LOGEMAX) \
@@ -240,7 +278,7 @@ HERA_MQ := -1
 HERA_MODEL := GBW
 
 validate-hera: dirs $(VALIDATE_HERA)
-	LD_LIBRARY_PATH=$(CONDA_PREFIX)/lib:$$LD_LIBRARY_PATH $(VALIDATE_HERA) \
+	$(VALIDATE_HERA) \
 		--model $(HERA_MODEL) \
 		--Nr $(NR) --Nz $(NZ) \
 		--flavors $(HERA_FLAVORS) \
@@ -255,7 +293,7 @@ $(BUILD_DIR)/validate_hera.o: $(SRC_DIR)/validate_hera.cpp
 TEST_QUAD := $(BUILD_DIR)/test_quadrature
 
 test-quadrature: dirs $(TEST_QUAD)
-	LD_LIBRARY_PATH=$(CONDA_PREFIX)/lib:$$LD_LIBRARY_PATH $(TEST_QUAD)
+	$(TEST_QUAD)
 
 $(TEST_QUAD): $(BUILD_DIR)/test_quadrature.o $(BUILD_DIR)/wavefunctions.o $(BUILD_DIR)/dipole_models.o $(BUILD_DIR)/integrals.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
@@ -266,13 +304,25 @@ $(BUILD_DIR)/test_quadrature.o: $(SRC_DIR)/test_quadrature.cpp
 TEST_TABLE := $(BUILD_DIR)/test_table
 
 test-table: dirs $(TEST_TABLE)
-	LD_LIBRARY_PATH=$(CONDA_PREFIX)/lib:$$LD_LIBRARY_PATH $(TEST_TABLE)
+	$(TEST_TABLE)
 
 $(TEST_TABLE): $(BUILD_DIR)/test_table.o $(BUILD_DIR)/wavefunctions.o $(BUILD_DIR)/dipole_models.o $(BUILD_DIR)/integrals.o $(BUILD_DIR)/structure_table.o $(BUILD_DIR)/sigma_nuN_core.o $(BUILD_DIR)/weak_structure_functions.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(BUILD_DIR)/test_table.o: $(SRC_DIR)/test_table.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# =====================================================
+# Verificacao completa
+# =====================================================
+
+.PHONY: check
+check: test-quadrature test-table validate-hera
+	@python3 tests/test_oracle.py
+	@echo
+	@echo "==================================================="
+	@echo " Verificacao completa concluida."
+	@echo "==================================================="
 
 plot-sigma-nuN: sigma-nuN
 	python $(PLOT_DIR)/plot_sigma_nuN.py

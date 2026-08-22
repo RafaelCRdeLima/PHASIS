@@ -1,7 +1,10 @@
 #include "wavefunctions.hpp"
 
+// std::cyl_bessel_k e C++17 (ISO 29124), em <cmath>.
+// Confere com boost::math::cyl_bessel_k a 2.7e-16 em
+// argumentos de 1e-8 a 500, entao o boost saiu das
+// dependencias -- o projeto compila so com g++ -std=c++17.
 #include <cmath>
-#include <boost/math/special_functions/bessel.hpp>
 
 namespace dipole {
 
@@ -85,9 +88,10 @@ double psiT2(double r, double z, double Q2, const Parameters& p)
     const double eps2v = epsilon2(z, Q2, p);
     const double arg   = std::sqrt(eps2v)*r;
 
-    return psiT2_pre(z, Q2, p, eps2v,
-                     boost::math::cyl_bessel_k(0, arg),
-                     boost::math::cyl_bessel_k(1, arg));
+    double K0, K1;
+    besselK01(arg, K0, K1);
+
+    return psiT2_pre(z, Q2, p, eps2v, K0, K1);
 }
 
 double psiL2(double r, double z, double Q2, const Parameters& p)
@@ -95,9 +99,10 @@ double psiL2(double r, double z, double Q2, const Parameters& p)
     const double eps2v = epsilon2(z, Q2, p);
     const double arg   = std::sqrt(eps2v)*r;
 
-    return psiL2_pre(z, Q2, p, eps2v,
-                     boost::math::cyl_bessel_k(0, arg),
-                     boost::math::cyl_bessel_k(1, arg));
+    double K0, K1;
+    besselK01(arg, K0, K1);
+
+    return psiL2_pre(z, Q2, p, eps2v, K0, K1);
 }
 
 } // namespace dipole
