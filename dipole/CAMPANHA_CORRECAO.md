@@ -124,16 +124,16 @@ antes de começar**, senão a campanha roda sem rede de segurança.
 | D2 | **crítico** | `integrals.cpp` | integração em `z` uniforme; quase-singularidades integráveis em z→0 e z→1 (aligned jet) recebem peso espúrio |
 | D3 | **crítico** | `Makefile:205` | `sigma-nuN` não passa `--Nr --Nz --NlogQ --Nlogx`; valem os defaults de `main()` (50/30/16/16) enquanto `integrals.hpp` declara 400/200 |
 | D4 | alto | `sigma_nuN.cpp` | `NlogQ=16` fixo; resolução em torno do pico Q²~M_W² **encolhe** com E (≈5 nós no PeV, ≈2 em 1e14) → platô e jitter de 1–3% |
-| D5 | alto | `sigma_nuN.cpp:75` vs `scan_x.cpp`/`main.cpp` | duas convenções de α no mesmo código; o manual (§3.3) documenta a que **não** alimenta σ |
-| D6 | alto | `dipole_models.hpp:6-9` + `parameters.hpp:20` | parâmetros GBW são o ajuste **sem charm** (σ₀=29,12 mb, λ=0,277, x₀=0,41e-4, que vem com m_{u,d,s}=0,14 GeV), mas o código usa m=0,03 e soma canal (c,s) |
+| D5 | alto | `scan_x.cpp`, `main.cpp` | ~~duas convenções de α~~ → **`sigma_nuN.cpp` está certo** (= KK eq. 9/12/13, verificado). São `scan_x` e `main` que não dividem por α e publicam F₂ 236× menor. Ver Q1 |
+| D6 | alto | `parameters.hpp:20-26` | ~~parâmetros GBW errados~~ → **os parâmetros estão certos** (é o ajuste de 4 sabores, com charm). As **massas** é que estão: fit pede m_{u,d,s}=0,14 e m_c=1,5 (GBW) / 1,4 (bCGC); código usa 0,03 e 1,3113. Ver Q3 |
 | D7 | alto | `optical_depth.cpp:83` | `iss >> Enu >> sigma_cm2` lê a **coluna 2** (`sigma_GeV_minus2`); τ sai 2,6e27× maior |
-| D8 | médio | `sigma_nuN.cpp:33` | `largeXFactor = (1-x)^7` ad hoc, aplicado a F_T/F_L/F₂ mas **não** a xF₃ |
-| D9 | médio | `dipole_models.cpp:106` vs `sigma_nuN.cpp:196` | IIM zera em x ≥ 1e-2; GBW não tem corte e vai até x=0,999999 |
+| ~~D8~~ | — | `sigma_nuN.cpp:33` | **RETIRADO.** `(1-x)^7` é a regra de contagem de constituintes com n_s=4, de KK. Não aplicá-lo a xF₃ também está correto. Ver Q4 |
+| D9 | médio | `dipole_models.cpp:106`, `sigma_nuN.cpp:196` | IIM zera em x ≥ 1e-2 — **desvio da referência**. KK integram todo x com o (1−x)⁷. O GBW está certo. Ver Q4 |
 | D10 | médio | `parameters.hpp:87` | α do NC 2× baixo: deveria ser (g_Z/2)²/4π = √2·G_F·M_Z²/(4π) |
-| D11 | médio | `parameters.hpp` | nenhum elemento de CKM; só 2 dos 6 canais W⁺→qq̄′ |
+| D11 | baixo | `parameters.hpp` | sem CKM; só os 2 canais favorecidos por Cabibbo. **É o que KK fazem** — rebaixado a "desvio conhecido", não bug |
 | D12 | médio | todos os `.dat` | zero proveniência — só `# model GBW` |
 | D13 | médio | — | nenhuma validação contra HERA, que é o dado a que GBW e bCGC **foram ajustados** |
-| D14 | baixo | `dipole_models.hpp:16` | `x0 = 0.00069e-6` do bCGC — verificar contra a fonte (padrão dos ajustes publicados é `0.00069e-4`) |
+| ~~D14~~ | — | `dipole_models.hpp:16` | **RETIRADO.** `x0 = 0.00069e-6` confere com a tese §4.8 e com Rezaeian et al. PRD 87 (2013) 034002. Ver Q2 |
 | D15 | baixo | `dipole_models.hpp:22` | `Nb = 80`, com comentário do próprio código pedindo 400 |
 | D16 | baixo | `sigma_nuN.cpp:283` | `--NE 1` → divisão por `NE-1` = 0 → NaN → LHAPDF aborta |
 | D17 | baixo | `integrals.cpp` | F_T e F_L em duas integrais 2D separadas, recomputando K₀/K₁ |
@@ -142,40 +142,104 @@ antes de começar**, senão a campanha roda sem rede de segurança.
 
 ---
 
-## 4. Decisões pendentes (bloqueiam fases específicas)
+## 4. Decisões — RESOLVIDAS pelas referências em `refs/`
 
-### Q1 — Convenção de α  *(bloqueia F5; afeta a normalização final)*
+Fontes consultadas:
 
-`sigma_nuN.cpp:75-77` divide F_T e F_L por `alphaEW`. No limite EM (g_V=e_f, g_A=0, α=α_em) a
-máquina reproduz o F₂^em padrão exatamente — **verificado**. Mas para CC isso deixa carga²
-efetiva = g_V²+g_A² = **2** por canal, enquanto a fórmula mestre (G_F²s/2π com F₂ = 2xq) quer
-peso 1×|V_qq′|².
+- **`refs/s2003-01236-y.pdf`** — Kutak & Kwieciński, Eur. Phys. J. C **29** (2003) 521.
+  *A referência do formalismo CC.* Eqs. (2), (8), (9), (10), (11), (12), (13).
+- **`refs/1.pdf`** — Gay Ducati, Machado & Machado, hep-ph/0609088.
+- **`refs/2.pdf`** — Gonçalves & Hepp, arXiv:1011.2718. Curvas de referência para σ_νN.
+- **`refs/tese_alex_sandro_quadros.pdf`** — §4.7 (GBW, p. 120) e §4.8 (bCGC, p. 121).
 
-Não afirmo que está errado: o σ convergido já sai em 0,5–0,9× Gandhi; tirar mais um fator 2 o
-levaria a 0,25–0,45×, que parece baixo demais. **Precisa da tese do Alex / da referência que
-fixou a convenção.**
+### Q1 — Convenção de α → **o código está CERTO**
 
-Agravante: `scan_x.cpp` e `main.cpp` **não** dividem por α. O `data/scan_x_F2_CC_models.dat`
-guarda F₂ 236× (=1/α_CC) menor que o F₂ que entra em σ, e põe essa coluna lado a lado com `xF3`
-do LHAPDF na normalização padrão.
+KK eq. (9): `F_{T,L} = Q²/(4π²) ∫d²r ∫dz |ψ̄_{T,L}|² σ_d`, com (quarks sem massa)
 
-### Q2 — `x0` do bCGC  *(bloqueia a regeneração do IIM)*
+```
+  |ψ̄_T^W|² = ( 6/π²)[z² + (1-z)²] Q̄² K₁²(Q̄r)        eq. (12)
+  |ψ̄_L^W|² = (24/π²) z²(1-z)²  Q²  K₀²(Q̄r)          eq. (13)      Q̄² = z(1-z)Q²
+```
 
-`0.00069e-6` = 6,9e-10. Os ajustes Watt–Kowalski publicados usam o formato `0.00105e-4`. Um
-irmão `0.00069e-4` = 6,9e-8 seria 100× maior. Como Q_s² ∝ (x₀/x)^λ, isso vale ~2,5× em σ_IIM.
+Os ψ̄ de KK **não carregam α** — o acoplamento está em G_F² na eq. (2). O código põe α_CC
+dentro de |ψ|² e `sigma_nuN.cpp:75-77` divide de volta: o líquido é exatamente a normalização
+de KK. Verificado numericamente, somando os dois canais e com m→0:
 
-### Q3 — Conjunto GBW  *(bloqueia F6)*
+```
+  r     z     psiT codigo    psiT KK       razao     psiL codigo   psiL KK       razao
+  1.00  0.50  4.640406e-02   4.640406e-02  1.00000   5.635046e-02  5.635046e-02  1.00000
+  0.30  0.20  1.249236e+00   1.249236e+00  1.00000   6.315282e-01  6.315282e-01  1.00000
+  2.00  0.70  6.363499e-03   6.363499e-03  1.00000   6.162386e-03  6.162386e-03  1.00000
+  0.05  0.50  9.370159e+00   9.370159e+00  1.00000   1.244664e+01  1.244664e+01  1.00000
+```
 
-Escolher **um**: (a) ajuste sem charm (σ₀=29,12, λ=0,277, x₀=0,41e-4, m_q=0,14 GeV, **sem** canal
-c s̄), ou (b) ajuste com charm (σ₀=23,03, λ=0,288, x₀=3,04e-4, m_{u,d,s}=0,14, m_c=1,4 GeV,
-**com** canal c s̄). Hoje o código mistura os dois.
+O fator (g_V²+g_A²) = 2 por canal × 2 canais = 4, que é o Σ(carga²) efetivo correto para
+F₂^CC = 2x[ū+d̄+s+c] (contra 10/9 do caso EM — razão 3,6, conferida).
 
-### Q4 — Política para x > 1e-2  *(bloqueia F7)*
+**Não há fator 2 pendente.** A suspeita registrada na análise inicial fica retirada.
 
-Nem extrapolar (GBW) nem zerar (IIM). Opções: casar com PDF colinear acima de x_match, ou
-declarar a tabela válida só acima de E onde x_típ < x_match e recusar abaixo.
+**Ação (F5):** `sigma_nuN.cpp` fica como está. Corrigir `scan_x.cpp` e `main.cpp`, que **não**
+dividem por α e portanto publicam F₂ 236× menor. Documentar a normalização de ψ no
+`Projeto_DIS.pdf` §3.3 — a fórmula lá está certa, mas omitir a normalização de ψ é o que
+tornou a divergência entre os três arquivos invisível.
 
----
+### Q2 — `x0` do bCGC → **o código está CERTO**
+
+Tese §4.8, p. 121: «B_CGC = 5.5 GeV², γ_s = 0.6492, N₀ = 0.3658, **x₀ = 0.00069 × 10⁻⁶** e
+λ = 0.2023», de Rezaeian, Siddikov, Van de Klundert & Venugopalan, Phys. Rev. D **87** (2013)
+034002. É valor publicado; o x₀ minúsculo é compensado pelo λ pequeno.
+
+**Ação:** nenhuma. D14 retirado.
+
+### Q3 — Conjunto GBW → **parâmetros certos, MASSAS erradas**
+
+Tese §4.7, p. 120: σ₀ = 29.12 mb, λ = 0.277, x₀ = 0.41×10⁻⁴ «ajustados aos dados de F₂ do HERA
+considerando quarks leves **e a contribuição do quark charm**». KK confirmam: «obtained from the
+fit with four flavors». Somar os canais (u,d) e (c,s) é o correto — KK: «os dipolos que
+contribuem para transições favorecidas por Cabibbo são ud̄(dū), cs̄(sc̄)».
+
+**Mas o ajuste vem com massas próprias, e são outras:**
+
+| | fit GBW (tese §4.7) | fit bCGC (tese §4.8) | código |
+|---|---|---|---|
+| m_{u,d,s} | **0,14 GeV** | **0,14 GeV** | 0,03 GeV |
+| m_c | **1,5 GeV** | **1,4 GeV** | 1,3113 GeV |
+
+As massas efetivas são parâmetros do ajuste, não convenção livre. Usar 0,03 quebra o ajuste ao
+HERA — e é justamente onde mais dói, porque em z→0 o dipolo máximo vai como 1/m (fator 4,7).
+
+**Ação (F6):** `QuarkMasses` por modelo, com os valores do ajuste correspondente.
+
+**Predição a testar depois da F2:** hoje, na F1, m=0,14 dá χ² *pior* que m=0,03 (73 contra 21).
+Com a quadratura convergida a ordem tem que inverter. Se não inverter, há outra coisa errada.
+
+### Q4 — Política para x > 1e-2 → **o GBW segue a referência; o corte do IIM é o desvio**
+
+KK: «O modelo de dipolo descreve bem o DIS a pequeno x, mas torna-se impreciso a x grande e
+moderadamente pequeno. Esse efeito pode ser aproximadamente levado em conta multiplicando as
+funções de estrutura por um fator (1−x)^{2n_s−1}, que segue da regra de contagem de
+constituintes, onde n_s é o número de quarks espectadores. Como o modelo de dipolo representa a
+contribuição do mar, tomamos n_s = 4.»
+
+2·4−1 = **7**. O `largeXFactor = (1-x)^7` **é da referência**, não é fudge. D8 retirado.
+
+Não aplicá-lo a xF₃ também está certo: xF₃ vem de PDF colinear, que já tem o comportamento
+correto em x→1.
+
+**Ação (F7):** remover o corte duro `x >= 1e-2` de `sigmaDipoleIIM` e o `xmax = 1e-2` de
+`sigmaNuN_CC`, deixando o (1−x)⁷ agir nos dois modelos igualmente. É o que elimina a assimetria
+GBW/IIM de 275 em 1e3 GeV.
+
+### Q5 — NOVA: definição de Y no bCGC *(pendente, baixo impacto)*
+
+Tese eq. (4.46): «sendo **Y = ln(x₀/x)** a rapidez». O código usa `Y = log(1.0/x)`.
+
+Com x₀ = 6,9×10⁻¹⁰, ln(x₀/x) é **negativo** para todo x > 6,9e-10 — ou seja, para toda a região
+usada. Isso tornaria γ_eff = γ_s + ln(2/τ)/(κλY) negativo e N divergente quando τ→0. O código,
+com ln(1/x), está na convenção padrão do IIM.
+
+**Quase certamente erro de digitação na tese.** Confirmar contra Rezaeian et al. PRD 87 034002,
+que não está em `refs/`. **Ação: nenhuma mudança no código**; só confirmar.
 
 ## 5. Fases
 
@@ -290,29 +354,31 @@ log-log por década ≥ 0,25 acima de 1e7 GeV.
 
 ---
 
-### F5 — Convenção de α  *(BLOQUEADA por Q1)*
+### F5 — Convenção de α  *(DESBLOQUEADA — ver Q1)*
 
-- Fixar uma convenção, documentar em `Projeto_DIS.pdf` §3.3, aplicar aos três arquivos.
-- Teste: limite EM continua exato depois da unificação.
+- `sigma_nuN.cpp` fica. Corrigir `scan_x.cpp` e `main.cpp` (dividir por α).
+- Documentar a normalização de ψ no `Projeto_DIS.pdf` §3.3.
+- Teste: limite EM continua exato; `scan_x` passa a concordar com `sigma_nuN` no mesmo (x,Q²).
 
 ---
 
-### F6 — Parâmetros físicos  *(BLOQUEADA por Q3)*
+### F6 — Parâmetros físicos  *(DESBLOQUEADA — ver Q3)*
 
-- Conjunto GBW consistente (parâmetros ↔ massas ↔ canais) — D6.
-- Remover ou justificar `(1-x)^7`; se ficar, aplicar também a xF₃ — D8.
-- Incluir CKM e os 6 canais W⁺→qq̄′ — D11.
+- Massas por modelo: GBW m_{u,d,s}=0,14 / m_c=1,5; bCGC m_{u,d,s}=0,14 / m_c=1,4 — D6/Q3.
+- `(1-x)^7` **fica** — é da referência (Q4).
 - Corrigir α do NC — D10.
 - `Nb` do bCGC para 400 e medir o efeito — D15.
+- CKM e canais suprimidos: **fora de escopo** (KK também não incluem); registrar como desvio.
 
 **Aceitação:** F1 (HERA) não degrada; cada mudança reportada isoladamente no seu efeito sobre σ.
 
 ---
 
-### F7 — Política para x > 1e-2  *(BLOQUEADA por Q4)*
+### F7 — Política para x > 1e-2  *(DESBLOQUEADA — ver Q4)*
 
-Mesma política para GBW e IIM, qualquer que seja. Hoje a assimetria é o que produz
-GBW/IIM = 275 em 1e3 GeV e 3,3 em 1e14.
+Remover o corte duro do IIM (`sigmaDipoleIIM`, `sigmaNuN_CC`), deixando o (1−x)⁷ agir nos dois
+modelos igualmente, como KK prescrevem. É o que elimina a assimetria GBW/IIM de 275 em 1e3 GeV
+contra 3,3 em 1e14.
 
 ---
 
