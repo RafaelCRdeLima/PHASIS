@@ -9,3 +9,7 @@ refs/
 
 __pycache__/
 *.pyc
+
+# Fatias intermediarias do calculo colinear (retomada). O produto e
+# data/collinear_sf.npz; as fatias sao descartaveis.
+data/collinear_sf_parcial/

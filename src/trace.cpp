@@ -144,6 +144,7 @@ struct Integrand {
     double E_inf;
     Branch branch;
     bool   spherical;
+    bool   freeze;   // sigma avaliada em E_inf, nao em E_loc
 
     // Em metrica esfericamente simetrica o movimento e PLANAR, entao
     // basta girar o plano orbital. Para perfil esferico theta e
@@ -166,7 +167,7 @@ struct Integrand {
         // sigma DENTRO da integral, avaliada na energia LOCAL. Na Fase 1
         // f = 1 e isto fatoraria; nao fatoramos de proposito -- e o que
         // o teste T10 verifica.
-        const double E_loc = geo.metric.E_local(E_inf, r);
+        const double E_loc = freeze ? E_inf : geo.metric.E_local(E_inf, r);
         return units::nucleons_per_gram*rho*xsec.sigma_tot(E_loc)*geo.dl_ds(r);
     }
 };
@@ -278,6 +279,7 @@ struct OdeCtx {
     double b;
     double sin_i;
     double psi_t;
+    bool   freeze;
 
     // Trecho SEM materia: so psi e l avancam.
     //
@@ -307,7 +309,9 @@ struct OdeCtx {
         const double dl   = d.dl_ds;
         const double dpsi = d.dpsi_ds;
 
-        const double E_loc = matter ? geo.metric.E_local(E_inf, r) : 0.0;
+        const double E_loc = matter
+            ? (freeze ? E_inf : geo.metric.E_local(E_inf, r))
+            : 0.0;
         const double sig   = matter ? xsec.sigma_tot(E_loc) : 0.0;
 
         dy[0] = dpsi;
@@ -334,10 +338,11 @@ static void trace_via_ode(Result& out,
                           const CrossSection& xsec,
                           double s_lo,
                           double s_hi,
-                          const IntegratorOpts& opts)
+                          const IntegratorOpts& opts,
+                          bool freeze)
 {
     OdeCtx ctx{geo, profile, xsec, ray.E_inf_GeV, ray.b_cm,
-               std::sin(ray.inclination_rad), ray.psi_turn_rad};
+               std::sin(ray.inclination_rad), ray.psi_turn_rad, freeze};
 
     OdeState<6> y{};   // tudo zero: psi_off, l, tau, X partem do ponto de retorno
 
@@ -416,7 +421,8 @@ Result trace_ray(const Ray& ray,
                  const Metric& metric,
                  const DensityProfile& profile,
                  const CrossSection& xsec,
-                 const IntegratorOpts& opts)
+                 const IntegratorOpts& opts,
+                 bool freeze_redshift)
 {
     Result out;
 
@@ -550,7 +556,8 @@ Result trace_ray(const Ray& ray,
     // Perfil com theta: EDO acoplada, obrigatoria.
     // force_ode: T12 confronta as duas no mesmo caso esferico.
     if (!profile.is_spherical() || opts.force_ode) {
-        trace_via_ode(out, ray, geo, profile, xsec, s_lo, s_hi, opts);
+        trace_via_ode(out, ray, geo, profile, xsec, s_lo, s_hi, opts,
+                      freeze_redshift);
         out.P_surv = std::exp(-out.tau);
         return out;
     }
@@ -586,7 +593,7 @@ Result trace_ray(const Ray& ray,
         const double c = (ib == 0) ? s_in_hi  : s_hi;
         if (!(c > a)) continue;
         Integrand ig{geo, profile, xsec, ray.E_inf_GeV, ramos[ib],
-                     profile.is_spherical()};
+                     profile.is_spherical(), freeze_redshift};
 
         const QuadResult q =
             integrate_peaked([&](double s){ return ig(s); }, a, c, geo.s_star, opts);

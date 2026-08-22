@@ -46,10 +46,36 @@ double d2sigma_dxdy_CC(
 )
 {
     const double s = 2.0*MN*Enu;
-    const double y = Q2/(x*s);
+    double y = Q2/(x*s);
 
     if (x <= 0.0 || x >= 1.0) return 0.0;
-    if (y <= 0.0 || y >= 1.0) return 0.0;
+    if (!(y > 0.0)) return 0.0;
+
+    // y = 1 e o EXTREMO CINEMATICO (lepton de saida com energia nula),
+    // nao um ponto proibido: o integrando ali vale
+    //
+    //     prefator * [ F2/2 - F_L/2 + xF3/2 ]
+    //
+    // que e finito e da ordem do resto. Zera-lo -- como fazia o teste
+    // `y >= 1.0` -- punha um DEGRAU exatamente no extremo inferior da
+    // quadratura em x, porque o laco integra a partir de x = Q^2/s, que
+    // e precisamente y = 1. Simpson com o valor do no de borda errado
+    // erra em O(h), nao em O(h^4): o erro deixa de cair como N^-4 e
+    // passa a cair como N^-1.
+    //
+    // Foi o que se mediu. Triplicar a densidade de nos reduzia o ruido
+    // de sigma por 3.2, nao por 81; e aumentar a tabela de F de 121 para
+    // 241 nos nao mudava NADA (as duas corridas sairam identicas),
+    // provando que a fonte estava na quadratura, nao na interpolacao.
+    //
+    // Mesma classe dos dois bugs de borda do PHASIS: fronteira dura
+    // avaliada exatamente num extremo de integracao.
+    if (y > 1.0) {
+        // Fora da cinematica de verdade, ou so o arredondamento de
+        // exp(log(Q2/s)) no no de borda?
+        if (y > 1.0 + 1.0e-9) return 0.0;
+        y = 1.0;
+    }
 
     // A tabela guarda F_T e F_L crus; o (1-x)^7 (regra de contagem de
     // constituintes, Kutak-Kwiecinski) e aplicado aqui para manter a

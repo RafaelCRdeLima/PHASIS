@@ -137,6 +137,28 @@ int main(int argc, char* argv[])
 
     // F9: proveniencia. A tabela tem de poder reproduzir a si mesma
     // so pelo cabecalho.
+    //
+    // As NOVE chaves obrigatorias vem primeiro, no formato
+    // '# chave = valor'. Elas nao sao decoracao: sao o que
+    // phasis::assert_comparable exige antes de deixar comparar esta
+    // tabela com outra. Uma tabela de nu contra uma de nubar, ou de
+    // alvo isoescalar contra proton, continuam sendo secoes de choque
+    // validas e a razao entre elas continua sendo um numero -- so a
+    // comparacao e que deixa de significar algo, e nada DENTRO de cada
+    // arquivo consegue detectar isso.
+    out << "# convention_y = (E_in - E_out)/E_in\n";
+    out << "# target       = isoscalar_nucleon\n";
+    out << "# projectile   = " << beam_name << "\n";
+    out << "# current      = CC\n";
+    out << "# units_sigma  = cm^2\n";
+    out << "# units_E      = GeV\n";
+    out << "# M_Z_GeV      = " << MZ << "\n";
+    out << "# dipole_model = " << model_name << "\n";
+    out << "# generated_by = sigma_nuN (PHASIS/dipole) commit "
+        << PHASIS_GIT_HASH << "\n";
+    // extras, fora das nove
+    out << "# M_W_GeV      = " << MW << "\n";
+    out << "# xF3_from     = " << (useF3 ? pdf_set : std::string("nenhum")) << "\n";
     out << "# model " << model_name << "\n";
     out << "# gerado_por sigma_nuN (PHASIS/dipole)\n";
     out << "# formalismo Kutak-Kwiecinski EPJ C29 (2003) 521, eqs (2),(8),(9),(12),(13)\n";

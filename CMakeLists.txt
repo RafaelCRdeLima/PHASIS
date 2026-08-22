@@ -44,6 +44,12 @@ endif()
 add_executable(trace src/trace_main.cpp)
 target_link_libraries(trace PRIVATE phasis_core)
 
+add_executable(alpha_scan src/alpha_scan.cpp)
+target_link_libraries(alpha_scan PRIVATE phasis_core)
+
+add_executable(redshift_scan src/redshift_scan.cpp)
+target_link_libraries(redshift_scan PRIVATE phasis_core)
+
 enable_testing()
 add_executable(test_phase1 tests/test_phase1.cpp)
 target_link_libraries(test_phase1 PRIVATE phasis_core)
@@ -68,3 +74,7 @@ add_test(NAME phase5 COMMAND test_phase5)
 add_executable(test_phase6 tests/test_phase6.cpp)
 target_link_libraries(test_phase6 PRIVATE phasis_core)
 add_test(NAME phase6 COMMAND test_phase6)
+
+add_executable(test_phase7 tests/test_phase7.cpp)
+target_link_libraries(test_phase7 PRIVATE phasis_core)
+add_test(NAME phase7 COMMAND test_phase7)

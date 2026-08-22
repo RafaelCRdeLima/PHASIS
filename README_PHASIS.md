@@ -663,3 +663,257 @@ grade `(E, y)` com `y` logarítmico.
 
 Isso **não bloqueia** as etapas 4–5: T23–T25 usam kernels analíticos, exatamente
 como T20–T22.
+
+## Acoplamento GR × saturação (T36–T39)
+
+A grandeza é propriedade **só de `σ_tot`**. Não depende de NC, nem de `dσ/dy`,
+nem do acoplamento NC do `dipole` (D10). Como `σ_CC` já estava validada, a
+medida estava desbloqueada.
+
+```
+α_eff(E) = d ln σ / d ln E        teto(E) = 3^(α_eff(E)/2)
+```
+
+O teto vem de `E_loc/E_inf = 1/√f(r_t) ≤ √3` em Schwarzschild: todo raio não
+capturado tem `r_t ≥ 1.5 r_s`, onde `f = 1/3`.
+
+**A assinatura não é o valor do teto, é a derivada dele em E.** Um deslocamento
+de normalização qualquer reajuste de PDF reproduz; uma inclinação que cai com a
+energia, não.
+
+### O estimador — e por que não é analítico
+
+`CrossSection::log_slope_detail` usa **diferença centrada em ln E** com passo
+adaptativo por redução pela metade (h inicial 0,1; piso 3e-3).
+
+A rota analítica está **fechada por construção**: `TableCrossSection` interpola
+linearmente em (ln E, ln σ), o que é C⁰. A derivada analítica dessa spline é uma
+função escada, com salto em cada nó, e no próprio nó nem está definida.
+
+O critério de parada é "achei o segmento", não "reduzi o truncamento": enquanto
+a janela `[E e^-h, E e^+h]` contém um nó, `D(h)` é média ponderada de dois
+segmentos e muda ao encolher; assim que a janela cabe dentro de um segmento,
+`D(h)` para de mudar porque ali `ln σ` é exatamente linear em `ln E`.
+
+O denominador é `ln(E₊) − ln(E₋)`, calculado nos mesmos valores que `σ` recebeu,
+não `2h`. `E·e^h` seguido de `ln` não devolve `h` exatamente, e usar `2h`
+injetaria erro relativo `~1e-16/h` — em `h = 3e-3` isso é 3e-14, na mesma ordem
+do que T36 mede.
+
+`log_slope` **não é virtual**, de propósito: se `PowerLawCrossSection`
+devolvesse `α` de um campo, T36 — o único teste que valida o estimador — estaria
+validando um `return`.
+
+### T37 — uma identidade, não um ajuste
+
+`R(b,E) = (τ_full − τ_frozen)/τ_frozen = ⟨f^(−α/2)⟩ − 1`, média com peso
+`n(r)σ dl`. Daí, com `g = f^(−α/2)` e `g_max = 3^(α/2)`:
+
+```
+teto − 1 − R  =  ∫w(g_max − g) / ∫w  =  K / τ_frozen
+```
+
+O numerador **converge** quando `b → b_crit⁺`, porque `(g_max − g)` se anula
+exatamente onde o peso diverge; o denominador diverge logaritmicamente. Então
+dois pontos bastam para extrapolar, resolvendo duas equações numa reta:
+
+```
+teto − 1 = (R₁τ₁ − R₂τ₂)/(τ₁ − τ₂)
+```
+
+Medido, com `K` constante a 6 algarismos ao longo de 6 décadas em `b/b_crit − 1`:
+
+| α | K | 1+R extrapolado | 3^(α/2) | erro rel |
+|---|---|---|---|---|
+| 0,20 | 8,55704 | 1,116123174 | 1,116123174 | 3,0e-11 |
+| 0,30 | 21,18490 | 1,179147646 | 1,179147646 | 4,6e-11 |
+| 0,36 | 34,34048 | 1,218657950 | 1,218657950 | 5,5e-11 |
+
+**Correção aos valores da especificação:** os tetos são **1,11612**, **1,17915**
+e **1,21866**. A especificação dizia 1,128 e 1,176 para os dois primeiros;
+`3^0,10 = 1,11612` e `3^0,15 = 1,17915`. O terceiro (1,219) estava certo.
+
+O halo do teste tem `r_in = 1,2 r_s`, **abaixo** da esfera de fótons: sem isso os
+raios quase-críticos enrolariam no vazio e o teto seria inatingível.
+
+### T39 — o pré-requisito lógico
+
+`R` é invariante sob `σ → kσ` porque um fator global multiplica numerador e
+denominador. Medido: **exatamente 0** para `k ∈ {0,5, 2}` (potências de dois, a
+reescala é exata em binário) e `≤ 2,6e-16` para `k = 10`; pior caso de 27
+combinações (3 k × 3 b × 3 E) igual a **2,1e-13**, e 4,7e-15 na tabela real.
+
+Isso vale porque `adaptive_simpson` usa `abs_tol = 0`: o critério é puramente
+relativo, então escalar o integrando escala `S1`, a tolerância e `|S2−S1|` na
+mesma proporção e o **padrão de subdivisão é idêntico**.
+
+É isso que legitima comparar dipolo com colinear apesar da supressão global do
+primeiro: `R` isola a **forma**.
+
+### T38 destapou um bug no `dipole`
+
+Rodado na tabela de produção de então, o teto pontual **não** era monótono: 92
+segmentos subiam de 189. O ruído de `ln σ` na tabela era **8,2e-4**, e ele
+escalava como **N⁻¹** com a densidade de nós da quadratura — não como N⁻⁴.
+Duplicar a tabela de `F` de 121 para 241 nós não mudava **nada**: as duas
+corridas saíram idênticas byte a byte.
+
+`N⁻¹` com a tabela de `F` irrelevante só tem uma causa: **descontinuidade no
+extremo da quadratura**. Em `sigma_nuN_core.cpp`,
+
+```cpp
+if (y <= 0.0 || y >= 1.0) return 0.0;   // ERRADO em y = 1
+```
+
+O laço em `x` integra a partir de `x = Q²/s`, que é **exatamente `y = 1`**. Mas
+`y = 1` é o extremo cinemático (lépton de saída com energia nula), não um ponto
+proibido: ali o integrando vale `prefator·[F₂/2 − F_L/2 + xF₃/2]`, finito e da
+ordem do resto. Zerá-lo punha um degrau no nó de borda, e Simpson com o valor da
+borda errado erra em O(h), não em O(h⁴).
+
+É a **mesma classe** dos dois bugs de borda de densidade das Fases 3 e 4:
+fronteira dura avaliada exatamente num extremo de integração. Terceira
+ocorrência.
+
+Depois do conserto, medido em 80 energias entre 1e7 e 1e14 GeV:
+
+| | ruído de `ln σ` | subidas de α |
+|---|---|---|
+| antes, 16 nós/década | 8,2e-4 | 37 de 78 |
+| antes, 48 nós/década | 2,6e-4 | 26 de 78 |
+| **depois, 16 nós/década** | **1,2e-6** | **0 de 78** |
+| **depois, 48 nós/década** | **1,2e-6** | **0 de 78** |
+
+Fator **670** a 16 nós/década. E 16 contra 48 nós/década agora diferem em no
+máximo **5,2e-7**: a quadratura está convergida, e o 1,2e-6 residual é do meu
+polinômio de referência, não do integrador.
+
+O conserto também remove um **viés**: `σ` sobe 0,23% em média (até 0,39%) a 16
+nós/década, 0,076% a 48. O viés era o mesmo termo de borda faltando; o ruído era
+a parte dele que oscilava conforme `Nlogx` saltava de 2 em 2 com a energia.
+
+A tabela de produção foi regerada. Nas duas (GBW e bCGC), **0 de 189** segmentos
+sobem em `E ≥ 1e7 GeV`.
+
+| E (GeV) | α GBW | teto GBW | α bCGC | teto bCGC |
+|---|---|---|---|---|
+| 1e5 | 0,6346 | 1,4171 | 0,6341 | 1,4167 |
+| 1e7 | 0,3565 | 1,2164 | 0,4112 | 1,2534 |
+| 1e9 | 0,2796 | 1,1660 | 0,3008 | 1,1797 |
+| 1e11 | 0,2561 | 1,1511 | 0,2434 | 1,1431 |
+| 1e13 | 0,2439 | 1,1434 | 0,2085 | 1,1214 |
+
+O teto cai de 1,22 para 1,14 (GBW) e de 1,25 para 1,12 (bCGC) entre 1e7 e 1e13.
+Essa queda é a assinatura.
+
+### Validação cruzada de metadados
+
+Toda tabela de `σ_tot` carrega as **nove chaves obrigatórias**, no formato
+`# chave = valor`, mais o hash do commit que a gerou (com sufixo `-sujo` se a
+árvore estava modificada).
+
+`phasis::assert_comparable(a, b)` exige as nove nas duas e **igualdade** de
+`target`, `projectile`, `current`, `units_sigma` e `units_E`. Não exige
+igualdade de `dipole_model` nem de `generated_by` — é exatamente ali que as duas
+devem diferir.
+
+Este é o único ponto onde uma comparação errada passaria despercebida: cada
+tabela isolada é autoconsistente, e a razão entre uma de ν e uma de ν̄ continua
+sendo um número perfeitamente calculável. Só a comparação é que deixa de
+significar algo, e nada **dentro** de cada arquivo consegue detectar isso.
+
+### A tabela colinear
+
+Gerada fora do C++, com **yadism 0.13.11 + eko 0.15.5** (NLO, ZM-VFNS, TMC
+desligada, CKM completa) sobre **NNPDF3.1 NLO**, tabulando `F₂`, `F_L` e `xF₃`
+numa grade de 121 × 71 nós em `(x, Q²)` — `x` de 1e-15 a 1, `Q²` de 1 a 2e14.
+
+Convenção conferida contra a fórmula de ordem dominante antes de gastar CPU: em
+yadism o observável chamado **`F3` é xF₃**, não F₃. A ordem dominante do yadism
+reproduz `2x[d+s+b−ū−c̄]` no nó, e `F_L = 0` exatamente.
+
+A integração em `σ` usa a **mesma fórmula mestra** do `dipole`
+(`tools/make_collinear_table.py` reproduz `sigma_nuN_core.cpp` linha por linha,
+inclusive a regra de nós por década e o `Nlogx` fixo ao longo do laço de `Q²`).
+Duas diferenças deliberadas, e só duas: as funções de estrutura são colineares, e
+**não há fator `(1−x)⁷`** — essa é a prescrição de grande `x` do modelo de
+dipolo, e os PDFs colineares já se anulam em `x → 1` sozinhos.
+
+Confere com a literatura colinear: `σ_CC(1e6 GeV) ≈ 6e-34 cm²`.
+
+**A extrapolação está registrada, não escondida.** Abaixo de `x = 1e-9` o LHAPDF
+extrapola. A tabela carrega uma quarta coluna com a fração de `σ` que vem dali:
+
+| E (GeV) | fração de σ com x < 1e-9 |
+|---|---|
+| ≤ 2,3e10 | 0,0% |
+| 1,9e11 | 0,5% |
+| 1,6e12 | 4,3% |
+| 1,3e13 | 20,7% |
+
+Acima de ~1e12 GeV, `α_eff` colinear é cada vez mais uma **propriedade da
+extrapolação** (uma lei de potência continuada), não uma medida. É exatamente a
+hipótese que o dipolo substitui — mas quem ler o arquivo daqui a seis meses
+precisa saber onde ela começa a mandar.
+
+### O resultado
+
+`teto_colinear − teto_dipolo`, em pontos percentuais de `σ`:
+
+| E (GeV) | GBW | bCGC |
+|---|---|---|
+| 1e5 | **−6,5** | −6,4 |
+| 1e7 | +3,4 | −0,4 |
+| 1e9 | +3,6 | +2,2 |
+| 1e11 | +2,3 | +3,1 |
+| 1e13 | +1,1 | +3,3 |
+
+O sinal **inverte** perto de 1e6 GeV: abaixo dali o dipolo sobe mais rápido que o
+colinear e o teto dele é maior. A separação no sentido previsto — teto do dipolo
+**abaixo** do colinear — só se estabelece na região de saturação, e vale 2 a 4
+pontos percentuais, não os 4,3 estimados a priori.
+
+`R(b,E)` medido diretamente, em `E = 1,09e7 GeV`, com `r_in = 1,2 r_s`:
+
+| b/b_crit − 1 | r_t/r_s | R dipolo | R colinear |
+|---|---|---|---|
+| 1e-12 | 1,50000 | 0,1914 | 0,2237 |
+| 1e-6 | 1,50123 | 0,1750 | 0,2044 |
+| 4e-3 | 1,58275 | 0,1337 | 0,1555 |
+| 1,0 | 4,59627 | 0,0281 | 0,0323 |
+
+Consistente com T37: `3^(α/2) − 1` vale 0,2154 (dipolo, `α = 0,354`) e 0,2469
+(colinear, `α = 0,404`), e o `R` medido se aproxima de cada um por baixo, como a
+lei `K/τ_frozen` exige.
+
+**A resposta honesta sobre detectabilidade** ainda não foi escrita, e ela é uma
+pergunta separada: 3 pontos percentuais em `σ` viram `Δτ = 0,15` em `τ = 5`, ou
+16% em `P`. Isso é detectável no cálculo. Se é detectável num telescópio depende
+do ensemble, que ainda não está decidido.
+
+### Executáveis
+
+```bash
+make                      # inclui alpha_scan e redshift_scan
+./build/alpha_scan    --dipole A.dat --colinear B.dat --out data/alpha_scan.csv
+./build/redshift_scan --dipole A.dat --colinear B.dat --out data/redshift_scan.csv
+```
+
+Os dois chamam `assert_comparable` antes de qualquer conta, e ecoam as nove
+chaves das **duas** tabelas no cabeçalho do CSV.
+
+Para regerar a tabela colinear (precisa do env micromamba `dis`):
+
+```bash
+export PATH=/home/rafael/micromamba/envs/dis/bin:$PATH
+export LD_LIBRARY_PATH=/home/rafael/micromamba/envs/dis/lib:$LD_LIBRARY_PATH
+python tools/build_collinear_sf.py      # ~13 min, RSS constante em ~800 MB
+python tools/make_collinear_table.py    # ~5 s
+```
+
+O `build_collinear_sf.py` fatia o cálculo por `Q²` e grava cada fatia assim que
+sai. Não é elegância: `yadism.Runner.get_result()` guarda a grade de funções de
+coeficiente de **cada** ponto pedido até o fim da chamada — 266 MB + 0,95 MB por
+ponto. Pedir os 8591 pontos de uma vez custa 8,4 GB, e numa máquina de 15 GB com
+2 GB de swap isso trava o sistema inteiro sem disparar o OOM-killer. Aconteceu.
+Fatiado, o consumo é constante e uma interrupção custa uma fatia.

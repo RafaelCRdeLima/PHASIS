@@ -18,6 +18,10 @@ CXX := g++
 #   Para tabela de producao abaixo de ~1e5 GeV, use LHAPDF.
 # =====================================================
 
+# Proveniencia: o hash entra no cabecalho de toda tabela gerada, para
+# que o arquivo consiga apontar de volta para o codigo que o produziu.
+GIT_HASH := $(shell git rev-parse --short HEAD 2>/dev/null || echo desconhecido)$(shell git diff --quiet 2>/dev/null || echo -sujo)
+
 LHAPDF_CONFIG := $(shell command -v lhapdf-config 2>/dev/null)
 
 ifeq ($(LHAPDF_CONFIG),)
@@ -32,7 +36,8 @@ endif
 
 # -MMD -MP gera .d com as dependencias de header. Sem isso, editar
 # include/*.hpp NAO dispara recompilacao.
-CXXFLAGS := -O3 -std=c++17 -Wall -Wextra -fopenmp -MMD -MP -Iinclude $(LHAPDF_CXXFLAGS)
+CXXFLAGS := -O3 -std=c++17 -Wall -Wextra -fopenmp -MMD -MP -Iinclude \
+            -DPHASIS_GIT_HASH='"$(GIT_HASH)"' $(LHAPDF_CXXFLAGS)
 LDFLAGS  := -fopenmp $(LHAPDF_LDFLAGS)
 
 .PHONY: env

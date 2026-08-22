@@ -53,7 +53,24 @@ Result trace_ray(const Ray& ray,
                  const Metric& metric,
                  const DensityProfile& profile,
                  const CrossSection& xsec,
-                 const IntegratorOpts& opts = IntegratorOpts{});
+                 const IntegratorOpts& opts = IntegratorOpts{},
+                 // Congela sigma em E_inf, ignorando o redshift no seu
+                 // argumento. Mesma assinatura e mesmo significado que
+                 // em transport_cascade.
+                 //
+                 // A GEOMETRIA e a MESMA: o caminho, o ponto de retorno
+                 // e a densidade nao mudam, so o argumento de sigma.
+                 // Comparar contra Minkowski trocaria o caminho tambem,
+                 // e a diferenca medida deixaria de ser so do redshift.
+                 //
+                 // Com isso,
+                 //     R = (tau_full - tau_frozen)/tau_frozen
+                 //       = <f^(-alpha/2)> - 1
+                 // e uma media ponderada por n(r) dl ao longo do raio --
+                 // INVARIANTE sob reescala global de sigma, que e o que
+                 // T39 verifica e o que legitima comparar dipolo com
+                 // colinear apesar da supressao global do primeiro.
+                 bool freeze_redshift = false);
 
 } // namespace phasis
 
