@@ -11,3 +11,6 @@ build/generate_benchmark_profiles
 build/validate_hera
 __pycache__/
 *.pyc
+build/*.d
+__pycache__/
+*.pyc
