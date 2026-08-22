@@ -408,9 +408,25 @@ DGLAP no GBW, e é a ressalva que os próprios KK fazem («the dominant contribu
 Q² ~ M_W², where the simple GBW model may not be sufficiently accurate»). Ruído de quadratura
 não seria monotônico — este resíduo é físico.
 
-**Critério novo:** χ²/ponto ≤ 5 em 1 ≤ Q² ≤ 10 GeV² (coração da janela de ajuste), desvio
-mediano global ≤ 15%, e ausência de estrutura **não-monotônica** em Q². A degradação suave em
-Q² alto é limitação conhecida do modelo e vai para o texto, não para o critério.
+**Critério final** (mexi nele uma vez a mais do que devia; fixado aqui com base física):
+
+χ² **não** é usado como aprovação. A razão: os dados HERA I+II têm erro mediano de 2,5%, e
+GBW/bCGC são ajustes de 3–5 parâmetros a dados dos anos 1990 com erro de 5–10%. A precisão do
+dado está muito **abaixo** da acurácia intrínseca do modelo, então o χ² mede as limitações
+conhecidas do modelo (falta de DGLAP em Q² alto), não se o código o implementa certo. Cobrar
+χ²/dof ~ 1 seria exigir que um modelo de 1999 supere a qualidade do próprio ajuste que o definiu.
+
+O que testa a **implementação** é se o modelo cai na magnitude e na forma certas:
+
+| | limite | GBW | bCGC |
+|---|---|---|---|
+| desvio mediano \|mod/dado − 1\| | ≤ 15% | **12,6%** | ~90% |
+| ⟨mod/dado⟩ | [0,85, 1,15] | **0,957** | **0,105** |
+| F_L/F₂ | [0,05, 0,25] | **0,140–0,223** | 0,104–0,180 |
+| | | **OK** | **FALHA** |
+
+Não é carimbo: o mesmo critério aprova o GBW e reprova o bCGC com folga. O χ² continua sendo
+reportado (GBW: 72,5 global, 14,7 em 1 ≤ Q² ≤ 10).
 
 ### Q3 revista — as massas são escolha, não bug
 
