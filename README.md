@@ -78,3 +78,5 @@ diz sobre os dois modelos de saturação; os 275 de antes eram artefato.
 Os PDFs de referência ficam em `refs/`, **fora do controle de versão**
 (material sob copyright). As referências estão citadas por DOI/arXiv na
 seção 4 de `dipole/CAMPANHA_CORRECAO.md`.
+
+![Antes e depois](dipole/plots/sigma_antes_depois.png)
