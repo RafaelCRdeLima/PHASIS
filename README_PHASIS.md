@@ -461,10 +461,38 @@ cobra é a **melhora** ao cruzar `y_min`, não um valor específico.
 ```
 
 O limite `√3` controla **σ**: a diferença em τ é 4,1% no pior caso, dentro do
-teto absoluto `3^0.18 − 1 = 21,9%`. Mas **P não herda esse teto** — é amplificado
-por `exp(δ·τ)`, e em τ ≈ 10 vira 32%. A frase "a assinatura de RG vem da
-geometria, não do redshift" vale na **janela observável** τ ∈ [0,3; 5]; fora
-dela, não.
+teto absoluto `3^0.18 − 1 = 21,9%`. Mas **P não herda esse teto**:
+
+```
+δP/P ≈ δτ = τ · (δσ/σ) ≤ 0,219 τ
+```
+
+Na janela observável `τ ∈ [0,3; 5]` isso vai de ~7% a ~67%. Ou seja: **o redshift
+não é desprezível exatamente onde o observável vive** — a amplificação é maior
+justamente onde τ é grande o bastante para importar e pequeno o bastante para P
+não ser zero. Uma versão anterior deste README dizia que "a assinatura de RG vem
+da geometria, não do redshift"; isso está **errado** na janela que interessa.
+
+### Uma predição testável, para quando a tabela do dipole existir
+
+O teto do redshift sobre σ é `3^{α/2}`, com `α = d ln σ/d ln E`. Mas α **não é
+constante**: redshift e saturação se acoplam com sinais opostos.
+
+```
+blueshift  ⇒  E_loc ↑  ⇒  x_loc ↓  ⇒  mais fundo na saturação  ⇒  supressão ↑
+```
+
+Com `α = 0,36` (colinear) o teto é 1,219; com `α ≈ 0,30` (saturado) cai para
+1,176. **A própria saturação reduz o realce por redshift.** Um cálculo colinear
+com α fixo superestima o efeito de RG; um cálculo de dipolo não, porque α emerge
+da dinâmica.
+
+Isso é mensurável neste código assim que a tabela existir: extrair `α_eff` da
+tabela e verificar se o teto observado em T25 cai **abaixo** de 1,219. Se cair,
+é um acoplamento GR×saturação demonstrado.
+
+O código já tem o que precisa — `freeze_redshift` isola o efeito com a geometria
+fixa, e T25 mede a diferença em τ. Falta só a tabela.
 
 **Metadados obrigatórios no formato de tabela.** As nove chaves
 (`convention_y`, `target`, `projectile`, `current`, `units_sigma`, `units_E`,
