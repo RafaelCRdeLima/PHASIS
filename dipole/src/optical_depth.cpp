@@ -21,6 +21,7 @@ struct ProfilePoint {
 
 struct SigmaPoint {
     double Enu_GeV;
+    double sigma_GeVminus2;
     double sigma_cm2;
 };
 
@@ -81,7 +82,10 @@ std::vector<SigmaPoint> readSigma(const std::string& filename)
 
         std::istringstream iss(line);
 
-        if (iss >> s.Enu_GeV >> s.sigma_cm2) {
+        // A tabela tem TRES colunas: Enu, sigma[GeV^-2], sigma[cm^2].
+        // Ler so duas pegava a coluna em GeV^-2 e a tratava como cm^2,
+        // inflando tau por 1/3.894e-28 = 2.6e27.
+        if (iss >> s.Enu_GeV >> s.sigma_GeVminus2 >> s.sigma_cm2) {
             sigmas.push_back(s);
         }
     }

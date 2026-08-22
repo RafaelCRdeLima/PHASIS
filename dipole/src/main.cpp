@@ -111,8 +111,9 @@ int main(int argc, char* argv[])
 
     else if (mode == "sigma") {
 
-        double FT = FT_GBW(x,Q2,wf,gbw);
-        double FL = FL_GBW(x,Q2,wf,gbw);
+        // F5: convencao DIS, ver scan_x.cpp e CAMPANHA_CORRECAO.md Q1.
+        double FT = FT_GBW(x,Q2,wf,gbw)/wf.alphaEW;
+        double FL = FL_GBW(x,Q2,wf,gbw)/wf.alphaEW;
         double F2 = FT + FL;
 
         std::ofstream out("data/structure_functions.dat");

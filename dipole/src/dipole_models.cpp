@@ -109,7 +109,19 @@ double sigmaDipoleIIM(double r, double x, const IIMParameters& p)
     // sigma_dip(x,r) = 2 ∫ d²b N(x,r,b)
     //                 = 4π ∫ b db N(x,r,b)
 
-    if (x <= 0.0 || x >= 1.0e-2) {
+    // F7: NAO ha corte em x aqui.
+    //
+    // O corte duro `x >= 1e-2 -> 0` que existia antes era um desvio da
+    // referencia, e era o que produzia a assimetria GBW/IIM de 275 em
+    // 1e3 GeV contra 3.3 em 1e14: o GBW extrapolava ate x -> 1 enquanto
+    // o IIM zerava.
+    //
+    // Kutak-Kwiecinski tratam o regime de x grande multiplicando as
+    // funcoes de estrutura por (1-x)^(2 n_s - 1) com n_s = 4 espectadores
+    // -- a regra de contagem de constituintes, aplicada em
+    // sigma_nuN_core.cpp:largeXFactor. A mesma politica vale para os dois
+    // modelos. Ver CAMPANHA_CORRECAO.md secao 4, Q4.
+    if (x <= 0.0 || x >= 1.0) {
         return 0.0;
     }
 

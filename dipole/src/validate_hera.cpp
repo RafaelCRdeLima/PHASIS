@@ -35,6 +35,8 @@
 #include "dipole_models.hpp"
 #include "integrals.hpp"
 
+#include <cstring>
+
 using namespace dipole;
 
 namespace {
@@ -89,6 +91,8 @@ StructureEM computeEM(
     const std::vector<QuarkFlavor>& flavors,
     const QuarkMasses& masses,
     const GBWParameters& gbw,
+    const IIMParameters& iim,
+    bool useIIM,
     int Nr,
     int Nz
 )
@@ -99,8 +103,13 @@ StructureEM computeEM(
     for (QuarkFlavor f : flavors) {
         Parameters wf = makeEMParameters(f, masses);
 
-        FT += FT_GBW(x, Q2, wf, gbw, Nr, Nz);
-        FL += FL_GBW(x, Q2, wf, gbw, Nr, Nz);
+        if (useIIM) {
+            FT += FT_IIM(x, Q2, wf, iim, Nr, Nz);
+            FL += FL_IIM(x, Q2, wf, iim, Nr, Nz);
+        } else {
+            FT += FT_GBW(x, Q2, wf, gbw, Nr, Nz);
+            FL += FL_GBW(x, Q2, wf, gbw, Nr, Nz);
+        }
     }
 
     // Convencao DIS: F2 = Q^2/(4 pi^2 alpha_em) * integral.
@@ -128,6 +137,9 @@ int main(int argc, char* argv[])
     std::string data_file =
         "/home/rafael/Codes/HADROS3/sandbox/data/hera/hera_nc_ep_920.dat";
     std::string out_file = "data/hera_validation.dat";
+    std::string model = "GBW";
+    double iim_x0 = -1.0;
+    int iim_Nb = -1;
 
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
@@ -140,6 +152,9 @@ int main(int argc, char* argv[])
         else if (a == "--flavors") flavor_set = argv[++i];
         else if (a == "--data")    data_file = argv[++i];
         else if (a == "--out")     out_file = argv[++i];
+        else if (a == "--model")   model = argv[++i];
+        else if (a == "--iim-x0")  iim_x0 = std::stod(argv[++i]);
+        else if (a == "--iim-Nb")  iim_Nb = std::stoi(argv[++i]);
         else {
             std::cerr << "Argumento desconhecido: " << a << "\n";
             return 2;
@@ -157,6 +172,11 @@ int main(int argc, char* argv[])
     }
 
     GBWParameters gbw;
+    IIMParameters iim;
+    if (iim_x0 > 0.0) iim.x0 = iim_x0;
+    if (iim_Nb > 0)   iim.Nb = iim_Nb;
+
+    const bool useIIM = (model == "IIM" || model == "bCGC");
 
     try {
         auto all = readHera(data_file);
@@ -178,8 +198,14 @@ int main(int argc, char* argv[])
             << ", " << Q2min << " <= Q2 <= " << Q2max << " GeV^2\n";
         out << "# sabores     = " << flavor_set << "\n";
         out << "# m_uds       = " << masses.u << " GeV\n";
-        out << "# GBW         = sigma0 " << gbw.sigma0_mb << " mb, lambda "
-            << gbw.lambda << ", x0 " << gbw.x0 << "\n";
+        if (useIIM) {
+            out << "# bCGC        = gamma_s " << iim.gamma_s << ", N0 " << iim.N0
+                << ", x0 " << iim.x0 << ", lambda " << iim.lambda
+                << ", B " << iim.BCGC << ", Nb " << iim.Nb << "\n";
+        } else {
+            out << "# GBW         = sigma0 " << gbw.sigma0_mb << " mb, lambda "
+                << gbw.lambda << ", x0 " << gbw.x0 << "\n";
+        }
         out << "# quadratura  = Nr " << Nr << ", Nz " << Nz << "\n";
         out << "# npontos     = " << sel.size() << "\n";
         out << "# Q2 x y sigma_red_dado err sigma_red_modelo F2_modelo FL_modelo pull\n";
@@ -192,7 +218,7 @@ int main(int argc, char* argv[])
         for (std::size_t i = 0; i < sel.size(); ++i) {
             const HeraPoint& p = sel[i];
 
-            StructureEM F = computeEM(p.x, p.Q2, flavors, masses, gbw, Nr, Nz);
+            StructureEM F = computeEM(p.x, p.Q2, flavors, masses, gbw, iim, useIIM, Nr, Nz);
 
             const double yy = p.y * p.y / (1.0 + (1.0 - p.y) * (1.0 - p.y));
             const double model = F.F2 - yy * F.FL;
@@ -226,6 +252,7 @@ int main(int argc, char* argv[])
         std::cout << "  pontos         : " << sel.size() << "\n";
         std::cout << "  sabores        : " << flavor_set
                   << "   m_uds = " << masses.u << " GeV\n";
+        std::cout << "  modelo         : " << (useIIM ? "bCGC/IIM" : "GBW") << "\n";
         std::cout << "  quadratura     : Nr = " << Nr << ", Nz = " << Nz << "\n";
         std::cout << "  ----------------------------------------\n";
         std::cout << "  chi2/ponto     : " << chi2_ndf << "\n";

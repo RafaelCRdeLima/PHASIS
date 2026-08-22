@@ -58,12 +58,18 @@ int main(int argc, char* argv[])
         double logx = logxmin + i*(logxmax - logxmin)/Nx;
         double x = std::pow(10.0, logx);
 
-        double FT_gbw = FT_GBW(x, Q2, wf, gbw, 120, 80);
-        double FL_gbw = FL_GBW(x, Q2, wf, gbw, 120, 80);
+        // F5: convencao DIS -- as wavefunctions carregam alphaEW e as
+        // funcoes de estrutura de Kutak-Kwiecinski (eq. 9) nao. Sem esta
+        // divisao, o F2 escrito aqui saia 1/alpha_CC = 236x menor que o
+        // que entra na secao de choque, e era publicado lado a lado com
+        // xF3 do LHAPDF, que esta na normalizacao padrao.
+        // Ver CAMPANHA_CORRECAO.md secao 4, Q1.
+        double FT_gbw = FT_GBW(x, Q2, wf, gbw, 200, 200)/wf.alphaEW;
+        double FL_gbw = FL_GBW(x, Q2, wf, gbw, 200, 200)/wf.alphaEW;
         double F2_gbw = FT_gbw + FL_gbw;
 
-        double FT_iim = FT_IIM(x, Q2, wf, iim, 120, 80);
-        double FL_iim = FL_IIM(x, Q2, wf, iim, 120, 80);
+        double FT_iim = FT_IIM(x, Q2, wf, iim, 200, 200)/wf.alphaEW;
+        double FL_iim = FL_IIM(x, Q2, wf, iim, 200, 200)/wf.alphaEW;
         double F2_iim = FT_iim + FL_iim;
 
         double xF3 = 0.0;

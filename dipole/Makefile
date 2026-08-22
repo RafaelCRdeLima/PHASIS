@@ -237,9 +237,11 @@ NR := 400
 NZ := 200
 HERA_FLAVORS := uds
 HERA_MQ := -1
+HERA_MODEL := GBW
 
 validate-hera: dirs $(VALIDATE_HERA)
 	LD_LIBRARY_PATH=$(CONDA_PREFIX)/lib:$$LD_LIBRARY_PATH $(VALIDATE_HERA) \
+		--model $(HERA_MODEL) \
 		--Nr $(NR) --Nz $(NZ) \
 		--flavors $(HERA_FLAVORS) \
 		--mq $(HERA_MQ)

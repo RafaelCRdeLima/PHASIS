@@ -183,13 +183,48 @@ dividem por α e portanto publicam F₂ 236× menor. Documentar a normalização
 `Projeto_DIS.pdf` §3.3 — a fórmula lá está certa, mas omitir a normalização de ψ é o que
 tornou a divergência entre os três arquivos invisível.
 
-### Q2 — `x0` do bCGC → **o código está CERTO**
+### Q2 — `x0` do bCGC → **REABERTA** (era "código certo")
 
 Tese §4.8, p. 121: «B_CGC = 5.5 GeV², γ_s = 0.6492, N₀ = 0.3658, **x₀ = 0.00069 × 10⁻⁶** e
 λ = 0.2023», de Rezaeian, Siddikov, Van de Klundert & Venugopalan, Phys. Rev. D **87** (2013)
 034002. É valor publicado; o x₀ minúsculo é compensado pelo λ pequeno.
 
-**Ação:** nenhuma. D14 retirado.
+**Isso continua valendo — o código bate com a tese.** Mas com a quadratura consertada (F2–F4),
+o bCGC passou a **falhar a validação contra o HERA**, que é o dado a que ele foi ajustado:
+
+```
+  bCGC vs sigma_red do HERA (m_uds=0.14, 4 sabores, quadratura convergida)
+    x0 = 6.9e-10 (tese)   chi2/pt = 2326   <mod/dado> = 0.105
+    x0 = 6.9e-9                     2096                0.156
+    x0 = 6.9e-8                     1773                0.231
+    x0 = 6.9e-7                     1345                0.338
+    x0 = 6.9e-6                      824                0.490
+    x0 = 1.05e-7 (Watt-Kowalski)    1703                0.248
+  GBW (referencia)                    72                0.957
+```
+
+**Nenhum x0 resolve**, e o desacordo não é só de escala: ⟨mod/dado⟩ varia de 0,148 em
+Q² < 1 GeV² a 0,071 em Q² = 25–50, e de 0,171 a 0,076 ao longo de x — 31% de dispersão
+relativa. A **forma** também está errada.
+
+Diagnóstico intermediário: Q_s(x=1e-5, b=0) = 0,379 GeV com estes parâmetros, contra ~0,6–0,8
+dos ajustes bCGC publicados. Para subir Q_s² por 10× com λ = 0,2023 seria preciso x₀ ≈ 6e-5,
+que não é um x₀ de bCGC plausível — ou seja, λ e x₀ não são mutuamente consistentes como
+transcritos.
+
+Descartado: a integral em b já converge com **Nb = 40** (D15 é não-problema); b_max = 20 é
+folgado (N cai a 1,7e-4 em b = 8); as eqs. (4.46), (4.47) e (4.48) da tese conferem com o código
+linha a linha.
+
+**Por que só apareceu agora:** o erro de quadratura inflava tudo por ~100×, e os parâmetros do
+bCGC deflacionam por ~10×. Os dois se cancelavam parcialmente, e a tabela IIM antiga parecia
+*mais próxima* do pQCD que a GBW. Não estava certa — estava errada duas vezes.
+
+**Ação: NÃO ajustar parâmetro para o número ficar bonito.** Isso é o Princípio 1 ao contrário.
+A tabela IIM regerada leva um bloco `# AVISO ... NAO USAR EM PRODUCAO` no cabeçalho.
+**Bloqueia:** precisa de Rezaeian & Schmidt, PRD **88** (2013) 074016, que não está em `refs/`.
+(A tese cita [42] = Rezaeian, Siddikov, Van de Klundert & Venugopalan PRD 87 034002 para os
+parâmetros do bCGC, mas esse é o artigo do **IP-Sat**; o do bCGC é o [43].) **D14 reaberto.**
 
 ### Q3 — Conjunto GBW → **parâmetros certos, MASSAS erradas**
 

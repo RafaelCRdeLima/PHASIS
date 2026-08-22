@@ -26,8 +26,8 @@ O plano completo, a evidência e o progresso estão em
 | F0 | Rede de segurança: oráculo, baselines congelados | concluída |
 | F1 | Validação do limite EM contra σ_red do HERA | concluída |
 | F2 | Quadratura: log r + z resolvido nas duas pontas | concluída |
-| F3 | Tabular F(x,Q²) e desacoplar os laços | pendente |
-| F4 | Grade em Q² e condicionamento | pendente |
+| F3 | Tabular F(x,Q²) e desacoplar os laços | concluída |
+| F4 | Densidade de nós e suavidade de σ(E) | concluída |
 | F5–F10 | Convenções, parâmetros, aplicação, regeneração | pendente |
 
 ### Compilar e testar
@@ -39,6 +39,7 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 
 cd dipole
 make test-quadrature    # aceitação da F2: F_2, convergência, normalização vs KK
+make test-table         # aceitação da F3/F4: interpolação, convergência, suavidade
 make validate-hera      # limite EM vs 239 pontos H1+ZEUS
 python3 tests/test_oracle.py
 make sigma-nuN          # gera data/sigma_nuN_CC_GBW.dat
