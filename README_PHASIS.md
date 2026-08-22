@@ -544,7 +544,86 @@ Em T28 o localizador acha `b = 8,182×10⁷` e `1,561×10⁸`, com τ = 1 nas du
   (commit, hashes das tabelas, `OMP_NUM_THREADS`), checkpointing.
 - Saída CSV do espectro transmitido.
 
-### A decisão pendente: emissão ou transmissão
+## Topologia do raio emitido (T31–T35)
+
+**Decidido: emissão.** Emissor **estático** em `r_emit`; emissor orbitando é a
+fase seguinte.
+
+O mapeamento ângulo → `b`, com `ψ` medido da direção radial para fora:
+
+```
+b = r_emit · sin ψ / √f(r_emit)
+```
+
+Emissão isotrópica no referencial local é **cos ψ uniforme** em [−1,1], não ψ
+uniforme.
+
+### São quatro casos, não três
+
+`g(r) = r/√f(r)` tem `g'(r) = ½ r^{1/2}(r−r_s)^{−3/2}(2r − 3r_s)`, que zera na
+esfera de fótons. **Abaixo dela `g` decresce**, então um raio emitido para fora
+encontra `g(r) = b` *acima* de `r_emit`, vira, e cai. A condição de escape
+inverte:
+
+| `r_emit` | direção | escapa se |
+|---|---|---|
+| `> 1,5 r_s` | fora | sempre |
+| `> 1,5 r_s` | dentro | `b > b_crit` |
+| `< 1,5 r_s` | fora | **`b < b_crit`** ← invertida |
+| `< 1,5 r_s` | dentro | nunca |
+
+Em `r_emit = 1,5 r_s` os dois ramos concordam (ali `b ≤ b_crit` sempre), então
+não há descontinuidade — e é exatamente onde `data/exemplo_buraco_negro.cfg`
+coloca `r_in`.
+
+### O cone de escape, com dois valores exatos
+
+```
+sin ψ_c = b_crit·√f(r)/r        f_cap = (1 − cos ψ_c)/2
+```
+
+| | resultado |
+|---|---|
+| `ψ_c(1,5 r_s) = π/2`, `f_cap = 1/2` | rel 0 |
+| `ψ_c(3 r_s) = π/4`, `f_cap = (2−√2)/4` | rel 0 |
+| fronteira de `classify()` vs `π − ψ_c`, 6 raios | 2,2×10⁻¹⁶ |
+| Monte Carlo, 10⁶ amostras, 6 raios | pior 0,01 σ |
+| **T33** emitido em `r_out` ≡ vindo do infinito | **0** |
+| **T34** radial `b=0` vs `b` pequeno | ≤ 4,9×10⁻¹⁶ |
+
+Na esfera de fótons, **exatamente metade** do céu local é captura. Na ISCO,
+**exatamente 45°** de cone e 14,64%.
+
+### Um caso que a especificação não previa
+
+Para `OutboundOnly` com `b < b_crit` o ponto de retorno **não existe** — não é um
+ponto de retorno "virtual" que o raio não alcança, é ausência. Mas aí `w = 1 −
+f b²/r²` nunca se anula na faixa percorrida, então **não há singularidade e não
+há o que fatorar**: integra-se direto. São três modos:
+
+| modo | quando | `dl/ds` |
+|---|---|---|
+| `Normal` | há retorno e o raio o alcança | `2r√(h·f(r_t)/T)` |
+| `NoTurn` | emitido para fora, sem retorno | `2s√(h/w)`, âncora em `r_emit` |
+| `Radial` | `b = 0` | `2s√h` — `r_t` e `f(r_t)` nem são invocados |
+
+O caso radial precisa de caminho próprio porque em Schwarzschild `r_t = 0` e
+`f(0)` são ambos singulares. Também foi corrigido um guarda `b > 0` que fazia um
+raio **radial vindo do infinito** escapar da checagem de captura — em
+Schwarzschild ele cai no buraco negro.
+
+### O emissor orbitando não é uma correção pequena
+
+`β = √(M/r)/√(1−2M/r)`, e na ISCO (`r = 6M`) isso vale **exatamente 1/2**, com
+`γ = 2/√3`. O fator Doppler `γ(1 ± β)` varre `1/√3` a `√3` — **fator 3 em
+energia**, contra o teto `√3` do redshift gravitacional. A aberração do fluido é
+o **maior** dos dois efeitos. Adiá-la é sequenciamento, não um argumento de que
+seja pequena.
+
+(Uma versão anterior deste README estimou `β ≈ 0,35`. A fórmula estava certa mas
+foi avaliada em `r = 10M`, não na ISCO.)
+
+### A decisão que estava pendente: emissão ou transmissão
 
 **(a) Emissão** — fonte em `r_emit` dentro do disco, isotrópica no referencial
 local. É a física: o AGN produz os neutrinos lá dentro. Mas quebra a topologia
@@ -563,8 +642,13 @@ tangencialmente tem seu ponto de retorno em `r_emit`. Para um emissor
 **orbitando** há aberração adicional entre o referencial do fluido e o estático,
 que é uma decisão à parte.
 
-**(b) Transmissão** — de ∞ a ∞, sombra do disco. É o que a máquina já faz, sem
-mudança nenhuma, mas a pergunta física é mais fraca.
+**(b) Transmissão** — de ∞ a ∞, sombra do disco. Continua funcionando sem
+mudança: `r_emit_cm ≤ 0` é o default e significa "vindo do infinito".
+
+**Escolhido (a).** T33 garante que a máquina antiga não quebrou: um raio emitido
+em `r_out` reproduz o resultado de ∞ a ∞ para o mesmo `b` **exatamente** (dif
+0,00e+00), e emitido no meio do halo tem o ramo de saída idêntico e o de entrada
+truncado.
 
 O `TableDifferentialCrossSection` ainda não existe: as tabelas de `dσ_NC/dy` do
 `dipole` **também não**. Ver a nota de bloqueio abaixo.

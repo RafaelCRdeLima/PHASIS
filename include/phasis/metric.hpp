@@ -67,7 +67,24 @@ struct Metric {
     // integrando, s_* = sqrt( T(r_t) / T'(r_t) ).
     virtual double turning_factor_slope(double r_turn) const;
 
-    // O raio de parametro de impacto b cai no buraco negro?
+    // Raio da esfera de fotons: o r onde g(r) = r/sqrt(f(r)) tem MINIMO.
+    //
+    //     g'(r) = (1/2) r^(1/2) (r-r_s)^(-3/2) (2r - 3 r_s)
+    //
+    // Zero em r = 1.5 r_s para Schwarzschild. Metricas sem minimo (g
+    // monotonica, como Minkowski) devolvem 0.
+    //
+    // Nao e curiosidade: e o que decide o SENTIDO do criterio de escape
+    // de um raio emitido. Abaixo da esfera de fotons g DECRESCE, entao um
+    // raio emitido para FORA encontra g(r) = b acima de r_emit, vira, e
+    // cai. A condicao de escape inverte.
+    virtual double r_photon_sphere() const { return 0.0; }
+
+    // Existe ponto de retorno para este b?
+    //
+    // ATENCAO: isto NAO e "o raio e capturado" em geral. Para um raio
+    // vindo do infinito as duas coisas coincidem; para um raio EMITIDO
+    // nao. Ver phasis::classify em emission.hpp.
     //
     // Default generico: nao ha raiz externa, ou seja, r_turning falha.
     // Metricas que sabem o criterio em forma fechada devem sobrescrever
@@ -161,6 +178,7 @@ public:
     double r_s() const { return r_s_; }
     double b_crit() const;              // (3 sqrt(3)/2) r_s
     double r_photon() const { return 1.5*r_s_; }
+    double r_photon_sphere() const override { return 1.5*r_s_; }
 
 private:
     double r_s_;

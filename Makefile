@@ -14,12 +14,12 @@ CXX      ?= g++
 CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -fopenmp -Iinclude -MMD -MP
 
 BUILD := build
-SRC   := src/shell.cpp src/cascade.cpp src/ode.cpp src/sweep.cpp src/integrate.cpp src/metric.cpp src/density.cpp \
+SRC   := src/emission.cpp src/shell.cpp src/cascade.cpp src/ode.cpp src/sweep.cpp src/integrate.cpp src/metric.cpp src/density.cpp \
          src/cross_section.cpp src/trace.cpp
 OBJ   := $(SRC:%.cpp=$(BUILD)/%.o)
 
 .PHONY: all test clean
-all: $(BUILD)/trace $(BUILD)/test_phase1 $(BUILD)/test_phase2 $(BUILD)/test_phase3 $(BUILD)/test_phase4 $(BUILD)/test_phase5
+all: $(BUILD)/trace $(BUILD)/test_phase1 $(BUILD)/test_phase2 $(BUILD)/test_phase3 $(BUILD)/test_phase4 $(BUILD)/test_phase5 $(BUILD)/test_phase6
 
 $(BUILD)/%.o: %.cpp
 	@mkdir -p $(dir $@)
@@ -43,12 +43,16 @@ $(BUILD)/test_phase4: $(OBJ) $(BUILD)/tests/test_phase4.o
 $(BUILD)/test_phase5: $(OBJ) $(BUILD)/tests/test_phase5.o
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-test: $(BUILD)/test_phase1 $(BUILD)/test_phase2 $(BUILD)/test_phase3 $(BUILD)/test_phase4 $(BUILD)/test_phase5 $(BUILD)/test_phase5
+$(BUILD)/test_phase6: $(OBJ) $(BUILD)/tests/test_phase6.o
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+test: $(BUILD)/test_phase1 $(BUILD)/test_phase2 $(BUILD)/test_phase3 $(BUILD)/test_phase4 $(BUILD)/test_phase5 $(BUILD)/test_phase6 $(BUILD)/test_phase5
 	@./$(BUILD)/test_phase1
 	@./$(BUILD)/test_phase2
 	@./$(BUILD)/test_phase3
 	@./$(BUILD)/test_phase4
 	@./$(BUILD)/test_phase5
+	@./$(BUILD)/test_phase6
 
 clean:
 	rm -rf $(BUILD)

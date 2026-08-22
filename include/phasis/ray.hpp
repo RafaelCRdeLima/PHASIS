@@ -35,6 +35,12 @@ struct Ray {
     double b_cm            = 0.0;   // parametro de impacto b = L / E_inf
     double inclination_rad = 0.0;   // i
     double psi_turn_rad    = 0.0;   // psi no ponto de retorno
+
+    // Emissao a distancia finita. r_emit_cm <= 0 significa "vindo do
+    // infinito", que e o comportamento das Fases 1-4 e continua sendo o
+    // default. Ver emission.hpp.
+    double r_emit_cm = 0.0;
+    bool   outward   = false;       // direcao no ponto de emissao
 };
 
 struct Result {

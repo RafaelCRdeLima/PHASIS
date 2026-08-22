@@ -1,4 +1,5 @@
 #include "phasis/trace.hpp"
+#include "phasis/emission.hpp"
 #include "phasis/ode.hpp"
 #include "phasis/units.hpp"
 
@@ -90,12 +91,49 @@ struct Geometry {
     double T_slope;
     double s_star;
 
+    // Modo da substituicao r = r_anchor + s^2.
+    //
+    //  Normal : ha ponto de retorno e o raio o alcanca. r_anchor = r_t,
+    //           e a raiz de w em r_t e removida por turning_factor.
+    //  NoTurn : NAO ha ponto de retorno na faixa percorrida -- e o caso
+    //           de um raio emitido PARA FORA com b < b_crit, que escapa.
+    //           Aqui w = 1 - f b^2/r^2 nunca se anula, entao nao ha
+    //           singularidade e nao ha o que fatorar: calcula-se direto.
+    //           r_anchor = r_emit.
+    //  Radial : b = 0. dl/dr = sqrt(h) exatamente; r_t e f(r_t) nem sao
+    //           invocados (em Schwarzschild seriam singulares).
+    enum class Mode { Normal, NoTurn, Radial };
+    Mode   mode;
+    double r_anchor;
+    double b;
+
     // dl/dr * dr/ds = 2 r sqrt( h f(r_t) / T(r) ).  Ver Metric::turning_factor.
+    //
+    // O caso RADIAL (b = 0) vai por caminho separado: la r_t = 0 e a
+    // fatoracao por turning_factor fica mal-condicionada -- em
+    // Schwarzschild ela nem esta definida em r_t = 0. Radialmente
+    // dl/dr = sqrt(h) exatamente, e com r = s^2 isso da
+    //     dl/ds = 2 sqrt(r) sqrt(h(r)),
+    // que e o limite continuo da formula geral (checado em T34).
+    double s_de_r(double r) const { return std::sqrt(std::max(0.0, r - r_anchor)); }
+    double r_de_s(double s) const { return r_anchor + s*s; }
+
     double dl_ds(double r) const
     {
+        const double h = metric.h(r);
+        const double s = s_de_r(r);
+
+        if (mode == Mode::Radial) return 2.0*s*std::sqrt(h);
+
+        if (mode == Mode::NoTurn) {
+            const double w = 1.0 - metric.f(r)*b*b/(r*r);
+            if (!(w > 0.0)) return 0.0;
+            return 2.0*s*std::sqrt(h/w);
+        }
+
         const double T = metric.turning_factor(r, r_turn);
         if (!(T > 0.0)) return 0.0;
-        return 2.0*r*std::sqrt(metric.h(r)*f_turn/T);
+        return 2.0*r*std::sqrt(h*f_turn/T);
     }
 };
 
@@ -121,7 +159,7 @@ struct Integrand {
 
     double operator()(double s) const
     {
-        const double r = geo.r_turn + s*s;
+        const double r = geo.r_de_s(s);
         const double rho = rho_at(r);
         if (rho <= 0.0) return 0.0;
 
@@ -182,10 +220,18 @@ RayDerivatives ray_derivatives(const Metric& metric,
 {
     RayDerivatives d;
 
+    const double h = metric.h(r);
+
+    if (b == 0.0) {
+        // Radial: dl/dr = sqrt(h), e dpsi/ds = 0 por definicao.
+        d.dl_ds   = 2.0*std::sqrt(r)*std::sqrt(h);
+        d.dpsi_ds = 0.0;
+        return d;
+    }
+
     const double T = metric.turning_factor(r, r_turn);
     if (!(T > 0.0)) return d;
 
-    const double h   = metric.h(r);
     const double fr  = metric.f(r);
     const double f_t = metric.f(r_turn);
 
@@ -378,10 +424,38 @@ Result trace_ray(const Ray& ray,
     if (!(b >= 0.0)) throw std::domain_error("trace_ray: b < 0");
     if (!(ray.E_inf_GeV > 0.0)) throw std::domain_error("trace_ray: E_inf <= 0");
 
-    // ---- captura ------------------------------------------------------
-    // Verificada ANTES de qualquer coisa, e por criterio proprio da
-    // metrica -- nunca por "o root-finder nao convergiu".
-    if (b > 0.0 && metric.is_captured(b)) {
+    // ---- topologia ----------------------------------------------------
+    // Para raio EMITIDO a distancia finita, o criterio de escape depende
+    // de que lado da esfera de fotons r_emit esta -- sao quatro casos,
+    // nao tres. Ver emission.hpp.
+    //
+    // Metric::is_captured significa "nao existe ponto de retorno", que
+    // coincide com captura SO para raio vindo do infinito.
+    const bool emitido = (ray.r_emit_cm > 0.0);
+    Topology topo = Topology::Turning;
+    if (emitido) {
+        const double f_e = metric.f(ray.r_emit_cm);
+        const double sin_psi = (f_e > 0.0)
+            ? std::min(1.0, b*std::sqrt(f_e)/ray.r_emit_cm) : 0.0;
+        const double psi = ray.outward ? std::asin(sin_psi) : (kPi - std::asin(sin_psi));
+        topo = classify(ray.r_emit_cm, psi, metric);
+        if (topo == Topology::Captured) {
+            out.captured = true;
+            out.tau      = std::numeric_limits<double>::infinity();
+            out.P_surv   = 0.0;
+            out.E_loc_max_GeV = std::numeric_limits<double>::infinity();
+            return out;
+        }
+    }
+
+    // ---- captura (raio vindo do infinito) -----------------------------
+    //
+    // SEM o guarda `b > 0`: um raio RADIAL vindo do infinito cai no
+    // buraco negro, e Schwarzschild::is_captured(0) devolve true
+    // corretamente. Com o guarda, b = 0 pulava a checagem e ia direto
+    // para r_turning, que entao lancava. Minkowski::is_captured(0)
+    // devolve false, entao o caso plano segue funcionando.
+    if (!emitido && metric.is_captured(b)) {
         out.captured = true;
         out.tau      = std::numeric_limits<double>::infinity();
         out.P_surv   = 0.0;
@@ -391,16 +465,38 @@ Result trace_ray(const Ray& ray,
     }
 
     // ---- ponto de retorno ---------------------------------------------
-    const double r_turn = metric.r_turning(b, b);
-    out.r_min_cm = r_turn;
+    //
+    // Raio RADIAL (b = 0): nao ha ponto de retorno a invocar. Em
+    // Schwarzschild r_turning(0) lancaria, e f(0) e singular -- mas o
+    // caminho radial nao usa nenhum dos dois: dl/dr = sqrt(h) direto.
+    // Fixamos r_turn = 0 e f_turn = 1 como valores inertes.
+    const bool radial = (b == 0.0);
 
-    const double f_turn = metric.f(r_turn);
-    if (!(f_turn > 0.0)) throw std::domain_error("trace_ray: f(r_turn) <= 0");
+    const bool sem_retorno = radial || metric.is_captured(b);
+    const double r_turn = sem_retorno ? 0.0 : metric.r_turning(b, b);
+    out.r_min_cm = sem_retorno ? (emitido ? ray.r_emit_cm : 0.0) : r_turn;
 
-    const double T_turn  = metric.turning_factor_at_turn(r_turn);
-    const double T_slope = metric.turning_factor_slope(r_turn);
+    const double f_turn = sem_retorno ? 1.0 : metric.f(r_turn);
+    if (!sem_retorno && !(f_turn > 0.0))
+        throw std::domain_error("trace_ray: f(r_turn) <= 0");
 
-    Geometry geo{metric, r_turn, f_turn, T_turn, T_slope, 0.0};
+    const double T_turn  = sem_retorno ? 0.0 : metric.turning_factor_at_turn(r_turn);
+    const double T_slope = sem_retorno ? 1.0 : metric.turning_factor_slope(r_turn);
+
+    // Escolha do modo. NoTurn e o caso que a especificacao original nao
+    // previa: um raio emitido PARA FORA com b < b_crit nao tem ponto de
+    // retorno nenhum -- nao um ponto de retorno "virtual", mas ausencia.
+    Geometry::Mode modo = Geometry::Mode::Normal;
+    double r_anchor = r_turn;
+    if (radial) {
+        modo = Geometry::Mode::Radial;
+        r_anchor = (emitido && ray.outward) ? ray.r_emit_cm : 0.0;
+    } else if (emitido && topo == Topology::OutboundOnly && sem_retorno) {
+        modo = Geometry::Mode::NoTurn;
+        r_anchor = ray.r_emit_cm;
+    }
+
+    Geometry geo{metric, r_turn, f_turn, T_turn, T_slope, 0.0, modo, r_anchor, b};
     geo.s_star = (T_turn > 0.0 && T_slope > 0.0)
                ? std::sqrt(T_turn/T_slope) : 0.0;
 
@@ -425,11 +521,18 @@ Result trace_ray(const Ray& ray,
     }
 
     // ---- faixa util ----------------------------------------------------
-    const double r_lo = std::max(r_turn, profile.r_support_min());
+    const double r_lo = std::max(r_anchor, profile.r_support_min());
     const double r_hi = profile.r_support_max();
 
-    out.E_loc_max_GeV = metric.E_local(ray.E_inf_GeV,
-                                       (r_hi > r_lo) ? r_lo : r_turn);
+    // Ponto mais fundo REALMENTE percorrido. Para um raio emitido para
+    // fora isso e r_emit, nao o ponto de retorno virtual (que pode ser 0
+    // e onde f seria singular).
+    double r_fundo = (r_hi > r_lo) ? r_lo : r_turn;
+    if (emitido && topo == Topology::OutboundOnly) {
+        r_fundo = std::max(r_fundo, ray.r_emit_cm);
+    }
+    if (!(r_fundo > 0.0)) r_fundo = std::max(profile.r_support_min(), 1.0);
+    out.E_loc_max_GeV = metric.E_local(ray.E_inf_GeV, r_fundo);
 
     if (!(r_hi > r_lo)) {
         out.tau = 0.0;
@@ -439,8 +542,8 @@ Result trace_ray(const Ray& ray,
     }
     out.crosses_matter = true;
 
-    const double s_lo = std::sqrt(std::max(0.0, r_lo - r_turn));
-    const double s_hi = std::sqrt(r_hi - r_turn);
+    const double s_lo = geo.s_de_r(r_lo);
+    const double s_hi = geo.s_de_r(r_hi);
 
     // ---- despacho -------------------------------------------------------
     // Perfil esferico: quadratura das Fases 1-2, validada em 1e-16.
@@ -452,6 +555,25 @@ Result trace_ray(const Ray& ray,
         return out;
     }
 
+    // ---- faixas POR RAMO ------------------------------------------------
+    // Raio do infinito: os dois ramos cobrem [s_lo, s_hi].
+    // Emitido, Turning: entrada so vai de r_t ate r_emit.
+    // Emitido, OutboundOnly: um ramo so, de r_emit para fora. Note que
+    //   r_t continua definido -- e o ponto de retorno VIRTUAL, que o raio
+    //   nunca atinge, e a fatoracao T(r) segue valida.
+    double s_in_hi = s_hi, s_out_lo = s_lo;
+    bool tem_entrada = true;
+
+    if (emitido) {
+        const double s_emit = geo.s_de_r(ray.r_emit_cm);
+        if (topo == Topology::OutboundOnly) {
+            tem_entrada = false;
+            s_out_lo = std::max(s_lo, s_emit);
+        } else {
+            s_in_hi = std::min(s_hi, s_emit);
+        }
+    }
+
     // ---- os dois ramos, por quadratura ----------------------------------
     const Branch ramos[2] = { Branch::Incoming, Branch::Outgoing };
 
@@ -459,26 +581,30 @@ Result trace_ray(const Ray& ray,
     double col_ramo[2] = {0.0, 0.0};
 
     for (int ib = 0; ib < 2; ++ib) {
+        if (ib == 0 && !tem_entrada) continue;
+        const double a = (ib == 0) ? s_lo     : s_out_lo;
+        const double c = (ib == 0) ? s_in_hi  : s_hi;
+        if (!(c > a)) continue;
         Integrand ig{geo, profile, xsec, ray.E_inf_GeV, ramos[ib],
                      profile.is_spherical()};
 
         const QuadResult q =
-            integrate_peaked([&](double s){ return ig(s); }, s_lo, s_hi, geo.s_star, opts);
+            integrate_peaked([&](double s){ return ig(s); }, a, c, geo.s_star, opts);
         tau_ramo[ib] = q.value;
         out.n_evals += q.n_evals;
         if (q.depth_exhausted || q.budget_exhausted) out.tolerance_met = false;
 
         const QuadResult qx = integrate_peaked([&](double s){
-            const double r = geo.r_turn + s*s;
+            const double r = geo.r_de_s(s);
             const double rho = ig.rho_at(r);
             return (rho > 0.0) ? rho*geo.dl_ds(r) : 0.0;
-        }, s_lo, s_hi, geo.s_star, opts);
+        }, a, c, geo.s_star, opts);
         col_ramo[ib] = qx.value;
 
         const QuadResult ql = integrate_peaked([&](double s){
-            const double r = geo.r_turn + s*s;
+            const double r = geo.r_de_s(s);
             return (ig.rho_at(r) > 0.0) ? geo.dl_ds(r) : 0.0;
-        }, s_lo, s_hi, geo.s_star, opts);
+        }, a, c, geo.s_star, opts);
         out.path_length_cm += ql.value;
     }
 

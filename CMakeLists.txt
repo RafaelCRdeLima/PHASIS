@@ -25,6 +25,7 @@ find_package(OpenMP)
 
 
 add_library(phasis_core
+  src/emission.cpp
   src/shell.cpp
   src/cascade.cpp
   src/ode.cpp
@@ -63,3 +64,7 @@ add_test(NAME phase4 COMMAND test_phase4)
 add_executable(test_phase5 tests/test_phase5.cpp)
 target_link_libraries(test_phase5 PRIVATE phasis_core)
 add_test(NAME phase5 COMMAND test_phase5)
+
+add_executable(test_phase6 tests/test_phase6.cpp)
+target_link_libraries(test_phase6 PRIVATE phasis_core)
+add_test(NAME phase6 COMMAND test_phase6)
