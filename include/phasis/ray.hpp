@@ -36,8 +36,16 @@ struct Result {
     double column_density   = 0.0;   // X = integral de rho dl, em g/cm^2
     double path_length_cm   = 0.0;   // integral de dl dentro do suporte
 
+    double deflection_rad   = 0.0;   // Delta_phi = 2*INT(dphi/dr)dr - pi
+    double E_loc_max_GeV    = 0.0;   // maior energia local ao longo do trecho util
+    double winding_turns    = 0.0;   // (Delta_phi + pi) / 2pi
+
     bool   crosses_matter   = false;
-    bool   captured         = false; // Fase 2
+    bool   captured         = false;
+    bool   near_critical    = false; // T(r_t)/r_t <= 1e-6: raio enrola na
+                                     // esfera de fotons; tau diverge
+                                     // LOGARITMICAMENTE em b -> b_crit+.
+                                     // Isso e fisico, nao falha numerica.
     bool   tolerance_met    = true;  // false se a quadratura esgotou profundidade
 
     long   n_evals          = 0;

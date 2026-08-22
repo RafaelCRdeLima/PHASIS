@@ -11,13 +11,16 @@ struct Ctx {
     long   n_evals = 0;
     int    max_depth_used = 0;
     bool   exhausted = false;
+    bool   over_budget = false;
     int    max_depth;
+    long   max_evals;
     double abs_tol;
 };
 
 double eval(Ctx& c, double x)
 {
     ++c.n_evals;
+    if (c.n_evals > c.max_evals) c.over_budget = true;
     return (*c.fn)(x);
 }
 
@@ -45,7 +48,7 @@ double step(Ctx& c, double a, double b,
 
     const double err = std::fabs(S2 - S1);
 
-    if (depth >= c.max_depth) {
+    if (c.over_budget || depth >= c.max_depth) {
         if (err > 15.0*tol) c.exhausted = true;
         return S2 + (S2 - S1)/15.0;
     }
@@ -72,6 +75,7 @@ QuadResult adaptive_simpson(const std::function<double(double)>& fn,
     Ctx c;
     c.fn        = &fn;
     c.max_depth = opts.max_depth;
+    c.max_evals = opts.max_evals;
     c.abs_tol   = opts.abs_tol;
 
     const double m  = 0.5*(a + b);
@@ -94,7 +98,8 @@ QuadResult adaptive_simpson(const std::function<double(double)>& fn,
 
     out.n_evals         = c.n_evals;
     out.max_depth_used  = c.max_depth_used;
-    out.depth_exhausted = c.exhausted;
+    out.depth_exhausted  = c.exhausted;
+    out.budget_exhausted = c.over_budget;
     return out;
 }
 

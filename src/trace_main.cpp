@@ -80,7 +80,9 @@ R"(uso: trace CONFIG [SAIDA.csv]
 
 Chaves do arquivo de configuracao (chave = valor, '#' comenta):
 
-  metric        = minkowski                 (Fase 1: unica opcao)
+  metric        = minkowski | schwarzschild
+    M_solar     = 10.0                      (schwarzschild) OU
+    r_s_cm      = 2.95325e6                 (schwarzschild)
 
   density       = uniform_ball | powerlaw_halo
     rho0_g_cm3  = 5.51
@@ -94,7 +96,13 @@ Chaves do arquivo de configuracao (chave = valor, '#' comenta):
     sigma0_cm2  = 1e-33                     (powerlaw)
     E0_GeV      = 1e3                       (powerlaw)
     alpha       = 0.363                     (powerlaw)
-    table_path  = ../dipole/data/sigma_nuN_CC_GBW.dat   (table)
+    table_path  = dipole/data/sigma_nuN_CC_GBW.dat      (table)
+
+  xsec_current  = cc | total
+    As tabelas do dipole sao CC PURAS. Para 'total' e obrigatorio dar
+    UM dos dois abaixo -- nao ha razao NC/CC assumida por default:
+    table_path_nc  = ...                    tabela NC separada, OU
+    nc_to_cc_ratio = 0.42                   razao declarada explicitamente
 
   E_inf_GeV     = 1e9                       energia unica, OU:
   E_min_GeV     = 1e4
@@ -107,6 +115,9 @@ Chaves do arquivo de configuracao (chave = valor, '#' comenta):
   n_b           = 20                        (linear)
 
   rel_tol       = 1e-8
+  max_depth     = 50
+  max_evals     = 2e6                       orcamento global da quadratura
+  deflection    = 1                          0 desliga o calculo do angulo
 )";
 }
 
@@ -145,12 +156,20 @@ int main(int argc, char** argv)
         const Config cfg = le_config(argv[1]);
 
         // ---- metrica --------------------------------------------------
+        std::unique_ptr<Metric> metric;
         const std::string mname = get(cfg, "metric", "minkowski");
-        if (mname != "minkowski") {
-            throw std::runtime_error(
-                "Fase 1 so implementa metric=minkowski (Schwarzschild e Fase 2)");
+        if (mname == "minkowski") {
+            metric = std::make_unique<Minkowski>();
+        } else if (mname == "schwarzschild") {
+            if (cfg.count("M_solar")) {
+                metric = std::make_unique<Schwarzschild>(
+                    Schwarzschild::from_solar_masses(getd(cfg, "M_solar", 1.0)));
+            } else {
+                metric = std::make_unique<Schwarzschild>(getd(cfg, "r_s_cm", 1.0e5));
+            }
+        } else {
+            throw std::runtime_error("metric desconhecida: " + mname);
         }
-        const Minkowski metric;
 
         // ---- densidade ------------------------------------------------
         std::unique_ptr<DensityProfile> profile;
@@ -171,19 +190,56 @@ int main(int argc, char** argv)
         }
 
         // ---- secao de choque ------------------------------------------
-        std::unique_ptr<CrossSection> xsec;
+        std::shared_ptr<const CrossSection> xsec;
         const std::string xname = get(cfg, "xsec", "powerlaw");
         if (xname == "powerlaw") {
-            xsec = std::make_unique<PowerLawCrossSection>(
+            xsec = std::make_shared<PowerLawCrossSection>(
                 getd(cfg, "sigma0_cm2", 1.0e-33),
                 getd(cfg, "E0_GeV", 1.0e3),
                 getd(cfg, "alpha", 0.363));
         } else if (xname == "table") {
             const std::string p = get(cfg, "table_path", "");
             if (p.empty()) throw std::runtime_error("xsec=table exige table_path");
-            xsec = std::make_unique<TableCrossSection>(p);
+            xsec = std::make_shared<TableCrossSection>(p);
         } else {
             throw std::runtime_error("xsec desconhecida: " + xname);
+        }
+
+        // Corrente carregada apenas, ou total?
+        //
+        // As tabelas de PHASIS/dipole sao CC PURAS. Na Fase 1/2, sem
+        // regeneracao, as duas convencoes sao defensaveis por motivos
+        // OPOSTOS: sigma_CC porque so a corrente carregada remove o
+        // neutrino de vez; sigma_tot porque, sem regeneracao, a corrente
+        // neutra tambem tira o neutrino do bin de energia.
+        //
+        // Por isso a escolha e explicita e vai para o cabecalho do CSV.
+        // Nao ha default silencioso.
+        const std::string corrente = get(cfg, "xsec_current", "cc");
+        std::string nota_corrente = "cc (tabela como esta)";
+
+        if (corrente == "total") {
+            const std::string p_nc = get(cfg, "table_path_nc", "");
+            if (!p_nc.empty()) {
+                auto soma = std::make_shared<SumCrossSection>();
+                soma->add(xsec);
+                soma->add(std::make_shared<TableCrossSection>(p_nc));
+                xsec = soma;
+                nota_corrente = "total = CC + NC (tabela NC: " + p_nc + ")";
+            } else if (cfg.count("nc_to_cc_ratio")) {
+                const double k = 1.0 + getd(cfg, "nc_to_cc_ratio", 0.0);
+                xsec = std::make_shared<ScaledCrossSection>(xsec, k);
+                std::ostringstream m;
+                m << "total = (1 + " << (k - 1.0) << ") * CC  [razao declarada]";
+                nota_corrente = m.str();
+            } else {
+                throw std::runtime_error(
+                    "xsec_current=total exige table_path_nc OU nc_to_cc_ratio "
+                    "explicito. As tabelas do dipole sao CC puras, e nao ha "
+                    "razao NC/CC assumida por default.");
+            }
+        } else if (corrente != "cc") {
+            throw std::runtime_error("xsec_current deve ser cc ou total");
         }
 
         // ---- grades ---------------------------------------------------
@@ -191,7 +247,10 @@ int main(int argc, char** argv)
         const auto bs = grade(cfg, "b_cm", "b_min_cm", "b_max_cm", "n_b", false, 0.0);
 
         IntegratorOpts opts;
-        opts.rel_tol = getd(cfg, "rel_tol", 1.0e-8);
+        opts.rel_tol   = getd(cfg, "rel_tol", 1.0e-8);
+        opts.max_depth = static_cast<int>(getd(cfg, "max_depth", 50));
+        opts.max_evals = static_cast<long>(getd(cfg, "max_evals", 2.0e6));
+        opts.want_deflection = (getd(cfg, "deflection", 1.0) != 0.0);
 
         // ---- saida ----------------------------------------------------
         std::ostream* out = &std::cout;
@@ -203,21 +262,33 @@ int main(int argc, char** argv)
         }
 
         *out << "# PHASIS trace\n";
-        *out << "# metric=" << metric.name()
+        *out << "# metric=" << metric->name()
              << " density=" << profile->name()
              << " xsec=" << xsec->name() << "\n";
+        *out << "# corrente=" << nota_corrente << "\n";
+        if (const auto* sw = dynamic_cast<const Schwarzschild*>(metric.get())) {
+            *out << "# r_s=" << sw->r_s() << " cm  b_crit=" << sw->b_crit()
+                 << " cm  r_photon=" << sw->r_photon() << " cm\n";
+        }
         *out << "# unidades: cm, g/cm^3, cm^2, GeV\n";
-        *out << "E_inf_GeV,b_cm,r_min_cm,tau,P_surv,column_g_cm2,path_cm,crosses_matter\n";
+        *out << "E_inf_GeV,b_cm,r_min_cm,tau,P_surv,column_g_cm2,path_cm,"
+                "crosses_matter,captured,near_critical,deflection_rad,"
+                "E_loc_max_GeV,winding_turns,tolerance_met\n";
         out->precision(12);
 
         for (double E : Es) {
             for (double b : bs) {
                 Ray ray; ray.E_inf_GeV = E; ray.b_cm = b;
-                const Result r = trace_ray(ray, metric, *profile, *xsec, opts);
+                const Result r = trace_ray(ray, *metric, *profile, *xsec, opts);
                 *out << E << "," << b << "," << r.r_min_cm << ","
                      << r.tau << "," << r.P_surv << ","
                      << r.column_density << "," << r.path_length_cm << ","
-                     << (r.crosses_matter ? 1 : 0) << "\n";
+                     << (r.crosses_matter ? 1 : 0) << ","
+                     << (r.captured ? 1 : 0) << ","
+                     << (r.near_critical ? 1 : 0) << ","
+                     << r.deflection_rad << "," << r.E_loc_max_GeV << ","
+                     << r.winding_turns << ","
+                     << (r.tolerance_met ? 1 : 0) << "\n";
             }
         }
 

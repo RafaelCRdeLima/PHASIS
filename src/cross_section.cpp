@@ -115,4 +115,32 @@ double TableCrossSection::sigma_tot(double E_GeV) const
     return std::exp(lnSigma_[i] + t*(lnSigma_[j] - lnSigma_[i]));
 }
 
+// ---------------------------------------------------------------------
+
+std::string ScaledCrossSection::name() const
+{
+    std::ostringstream m;
+    m << k_ << " * " << base_->name();
+    return m.str();
+}
+
+double SumCrossSection::sigma_tot(double E_GeV) const
+{
+    double s = 0.0;
+    for (const auto& p : parts_) s += p->sigma_tot(E_GeV);
+    return s;
+}
+
+std::string SumCrossSection::name() const
+{
+    std::ostringstream m;
+    m << "Sum[";
+    for (std::size_t i = 0; i < parts_.size(); ++i) {
+        if (i) m << " + ";
+        m << parts_[i]->name();
+    }
+    m << "]";
+    return m.str();
+}
+
 } // namespace phasis

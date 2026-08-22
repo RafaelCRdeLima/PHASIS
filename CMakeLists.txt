@@ -37,3 +37,7 @@ enable_testing()
 add_executable(test_phase1 tests/test_phase1.cpp)
 target_link_libraries(test_phase1 PRIVATE phasis_core)
 add_test(NAME phase1 COMMAND test_phase1)
+
+add_executable(test_phase2 tests/test_phase2.cpp)
+target_link_libraries(test_phase2 PRIVATE phasis_core)
+add_test(NAME phase2 COMMAND test_phase2)

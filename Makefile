@@ -19,7 +19,7 @@ SRC   := src/integrate.cpp src/metric.cpp src/density.cpp \
 OBJ   := $(SRC:%.cpp=$(BUILD)/%.o)
 
 .PHONY: all test clean
-all: $(BUILD)/trace $(BUILD)/test_phase1
+all: $(BUILD)/trace $(BUILD)/test_phase1 $(BUILD)/test_phase2
 
 $(BUILD)/%.o: %.cpp
 	@mkdir -p $(dir $@)
@@ -31,8 +31,12 @@ $(BUILD)/trace: $(OBJ) $(BUILD)/src/trace_main.o
 $(BUILD)/test_phase1: $(OBJ) $(BUILD)/tests/test_phase1.o
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-test: $(BUILD)/test_phase1
+$(BUILD)/test_phase2: $(OBJ) $(BUILD)/tests/test_phase2.o
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+test: $(BUILD)/test_phase1 $(BUILD)/test_phase2
 	@./$(BUILD)/test_phase1
+	@./$(BUILD)/test_phase2
 
 clean:
 	rm -rf $(BUILD)

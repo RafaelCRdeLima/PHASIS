@@ -52,6 +52,29 @@ struct Metric {
     // cada metrica deve fornece-la em forma fechada quando puder.
     virtual double turning_factor(double r, double r_turn) const;
 
+    // T no proprio ponto de retorno. A forma geral de turning_factor da
+    // 0/0 em r = r_t, entao o limite entra separado:
+    //
+    //     T(r_t) = 2 f(r_t) r_t - f'(r_t) r_t^2
+    //
+    // Esta quantidade e o diagnostico central do regime quase-critico:
+    // ela mede a distancia a raiz DUPLA de w. Em Schwarzschild vale
+    // 2 r_t - 3 r_s e zera na esfera de fotons.
+    virtual double turning_factor_at_turn(double r_turn) const;
+
+    // T'(r_t) = f(r_t) - (1/2) f''(r_t) r_t^2.  Da 1 tanto em Minkowski
+    // quanto em Schwarzschild; serve para dimensionar o pico do
+    // integrando, s_* = sqrt( T(r_t) / T'(r_t) ).
+    virtual double turning_factor_slope(double r_turn) const;
+
+    // O raio de parametro de impacto b cai no buraco negro?
+    //
+    // Default generico: nao ha raiz externa, ou seja, r_turning falha.
+    // Metricas que sabem o criterio em forma fechada devem sobrescrever
+    // -- em Schwarzschild o criterio E o discriminante da cubica, o que
+    // torna o teste exato em vez de "o solver nao convergiu".
+    virtual bool is_captured(double b) const;
+
     // Energia local medida por um observador estatico em r, para um raio
     // com energia conservada E_inf = f * dt/dlambda.
     //
@@ -76,6 +99,71 @@ struct Minkowski final : Metric {
     double turning_factor(double r, double r_turn) const override {
         return r + r_turn;
     }
+    double turning_factor_at_turn(double r_turn) const override { return 2.0*r_turn; }
+    double turning_factor_slope(double)          const override { return 1.0; }
+};
+
+// ---------------------------------------------------------------------
+// Schwarzschild:  f(r) = 1/h(r) = 1 - r_s/r.
+//
+// r_s = 2GM/c^2 = 2.95325e5 cm * (M/M_sol).
+// ---------------------------------------------------------------------
+// Nao e `final`: a suite de testes deriva dela para forcar a bisecao
+// generica e validar as duas rotas de r_turning uma contra a outra.
+class Schwarzschild : public Metric {
+public:
+    explicit Schwarzschild(double r_s_cm) : r_s_(r_s_cm) {}
+
+    static Schwarzschild from_solar_masses(double M_sol);
+
+    double f(double r) const override { return 1.0 - r_s_/r; }
+    double h(double r) const override { return 1.0/(1.0 - r_s_/r); }
+    std::string name() const override { return "Schwarzschild"; }
+
+    // Forma fechada. b = r_t/sqrt(1 - r_s/r_t) e a cubica
+    //
+    //     r_t^3 - b^2 r_t + b^2 r_s = 0
+    //
+    // com discriminante b^4 (4 b^2 - 27 r_s^2). A raiz fisica (a maior,
+    // k = 0 na solucao trigonometrica) e
+    //
+    //     r_t = (2b/sqrt3) cos[ (1/3) acos( -3 sqrt3 r_s / (2b) ) ]
+    //
+    // Exata, sem iteracao. Remove o root-finder como fonte de erro na
+    // metrica de referencia. Limites: r_s -> 0 da r_t = b;
+    // b = b_crit da r_t = 1.5 r_s.
+    double r_turning(double b, double r_search_max) const override;
+
+    // T(r) = (r + r_t) - (r_s/(r_t r)) (r^2 + r r_t + r_t^2)
+    //
+    // vem de  f(r_t) r^2 - f(r) r_t^2 = (r^2 - r_t^2) - r_s (r^3 - r_t^3)/(r_t r),
+    // fatorando (r - r_t) dos dois termos. Exata.
+    //
+    // No ponto de retorno:  T(r_t) = 2 r_t - 3 r_s.
+    // Isso zera exatamente na esfera de fotons, r_ph = 1.5 r_s -- nao e
+    // coincidencia: la r_t vira raiz DUPLA de w, e e por isso que existe
+    // b_crit. Ver turning_factor_at_turn().
+    double turning_factor(double r, double r_turn) const override;
+
+    // T(r_t) = 2 r_t - 3 r_s, sem passar pela forma geral (onde r = r_t
+    // faria 0/0).
+    double turning_factor_at_turn(double r_turn) const override {
+        return 2.0*r_turn - 3.0*r_s_;
+    }
+
+    // T'(r_t) = f(r_t) - (1/2) f''(r_t) r_t^2
+    //         = (1 - r_s/r_t) - (1/2)(-2 r_s/r_t^3) r_t^2 = 1.  Exato.
+    double turning_factor_slope(double) const override { return 1.0; }
+
+    // Captura <=> discriminante da cubica <= 0 <=> b <= (3 sqrt3 / 2) r_s.
+    bool is_captured(double b) const override;
+
+    double r_s() const { return r_s_; }
+    double b_crit() const;              // (3 sqrt(3)/2) r_s
+    double r_photon() const { return 1.5*r_s_; }
+
+private:
+    double r_s_;
 };
 
 } // namespace phasis

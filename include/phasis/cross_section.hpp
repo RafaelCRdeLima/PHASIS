@@ -1,6 +1,7 @@
 #ifndef PHASIS_CROSS_SECTION_HPP
 #define PHASIS_CROSS_SECTION_HPP
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -73,6 +74,42 @@ private:
     std::vector<double> lnE_;
     std::vector<double> lnSigma_;
     std::vector<std::string> header_;
+};
+
+// ---------------------------------------------------------------------
+// sigma = k * base.
+//
+// Existe para uma coisa concreta: as tabelas produzidas por
+// PHASIS/dipole sao de CORRENTE CARREGADA APENAS. Somar a corrente
+// neutra exige ou uma segunda tabela, ou uma razao sigma_NC/sigma_CC
+// declarada explicitamente.
+class ScaledCrossSection final : public CrossSection {
+public:
+    ScaledCrossSection(std::shared_ptr<const CrossSection> base, double k)
+        : base_(std::move(base)), k_(k) {}
+
+    double sigma_tot(double E_GeV) const override {
+        return k_*base_->sigma_tot(E_GeV);
+    }
+    std::string name() const override;
+
+private:
+    std::shared_ptr<const CrossSection> base_;
+    double k_;
+};
+
+// ---------------------------------------------------------------------
+// sigma = soma das partes. Para combinar CC + NC vindos de tabelas
+// separadas.
+class SumCrossSection final : public CrossSection {
+public:
+    void add(std::shared_ptr<const CrossSection> p) { parts_.push_back(std::move(p)); }
+
+    double sigma_tot(double E_GeV) const override;
+    std::string name() const override;
+
+private:
+    std::vector<std::shared_ptr<const CrossSection>> parts_;
 };
 
 } // namespace phasis

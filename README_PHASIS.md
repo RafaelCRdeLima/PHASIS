@@ -4,9 +4,8 @@ Profundidade óptica de neutrinos de ultra-alta energia ao longo de geodésicas
 nulas em espaço-tempo estático e esfericamente simétrico, com perfil de matéria
 arbitrário.
 
-**Fase 1 (esta):** espaço plano. Sem relatividade geral, sem disco, sem
-regeneração. O objetivo é uma base validada contra resultados analíticos antes
-de complicar.
+**Fases 1–2 (estas):** espaço plano e Schwarzschild. Sem disco, sem
+dependência em θ, sem regeneração.
 
 ## Unidades
 
@@ -85,8 +84,60 @@ Result trace_ray(const Ray&, const Metric&, const DensityProfile&,
                  const CrossSection&, const IntegratorOpts&);
 ```
 
-Implementações desta fase: `Minkowski`, `UniformBall`, `PowerLawHalo`,
-`PowerLawCrossSection`, `TableCrossSection`.
+Implementações: `Minkowski`, `Schwarzschild`; `UniformBall`, `PowerLawHalo`;
+`PowerLawCrossSection`, `TableCrossSection`, `ScaledCrossSection`,
+`SumCrossSection`.
+
+## Fase 2 — relatividade geral
+
+**Ponto de retorno em forma fechada.** `b = r_t/√(1−r_s/r_t)` é a cúbica
+`r_t³ − b²r_t + b²r_s = 0`, cujo discriminante é `b⁴(4b² − 27r_s²)`. A raiz
+física é
+
+```
+r_t = (2b/√3)·cos[ (1/3)·acos( −3√3·r_s/(2b) ) ]
+```
+
+Exata, sem iteração. A bissecção genérica continua em `Metric::r_turning` como
+fallback, e um teste confronta as duas (concordância ≤ 2×10⁻¹⁶).
+
+**Captura.** O critério *é* o discriminante da cúbica: `b ≤ (3√3/2)r_s`. Não é
+"o root-finder não convergiu" — `Metric::is_captured` tem override exato em
+Schwarzschild. Retorna `Result{captured, τ=∞, P=0}`, nunca NaN.
+
+**A conexão que fecha o argumento.** Avaliando `T` no próprio ponto de retorno:
+
+```
+T(r_t) = 2r_t − 3r_s
+```
+
+que zera **exatamente** na esfera de fótons `r_ph = 3r_s/2`. Não é coincidência:
+ali `r_t` vira raiz **dupla** de `w`, e é por isso que `b_crit` existe. Duas
+consequências, ambas exploradas no código:
+
+1. O critério de captura e a estrutura da singularidade são o mesmo objeto.
+2. Perto de `b_crit`, `w ~ (r−r_t)²` e o integrando vai como `1/s`. A
+   substituição `s²` matou a raiz quadrada, **não** o logaritmo. `∫ds/s` diverge
+   — e a divergência é **física**: o raio enrola na esfera de fótons e o
+   comprimento próprio realmente cresce sem limite quando `b → b_crit⁺`.
+
+**Tratamento do regime quase-crítico.** Com `ε = T(r_t)/r_t` medindo a distância
+à criticalidade e `s_★ = √(T(r_t)/T'(r_t))` a largura do pico, a integral é
+partida em `s_split = 8s_★`: abaixo dela, direto em `s`; acima, substituição
+exponencial `s = s_split·e^u`, onde `ds/s = du` e a cauda `1/s` vira constante.
+`Result.near_critical` sinaliza `ε ≤ 10⁻⁶`, e `winding_turns` reporta as voltas
+além de uma linha reta. Nunca NaN, nunca truncamento silencioso.
+
+## Corrente carregada ou total?
+
+As tabelas de `dipole/` são **CC puras**. Sem regeneração, as duas convenções
+são defensáveis por motivos **opostos**: `σ_CC` porque só a corrente carregada
+remove o neutrino de vez; `σ_tot` porque, sem regeneração, a corrente neutra
+também tira o neutrino do bin de energia.
+
+Por isso `xsec_current` é explícito, vai para o cabeçalho do CSV, e **não tem
+default silencioso**: `xsec_current=total` exige `table_path_nc` ou
+`nc_to_cc_ratio` declarado.
 
 ## Consumindo a produção do `dipole`
 
@@ -124,6 +175,33 @@ make test       # suite de aceitação T1..T6
 
 44 verificações, 0 falhas.
 
+## Testes de aceitação — Fase 2
+
+| | o que verifica | resultado |
+|---|---|---|
+| T7 | desvio em relação a Minkowski escala como `(r_s/r_t)^1` | expoente 1,00006 |
+| T8 | `Δφ → 2r_s/b`, erro caindo como `r_s/b` | erro ≤ 1,5×10⁻³ |
+| T8c | coeficiente de 2ª ordem `= 15π/16` | 2,9455 vs 2,9452 |
+| T9a | forma fechada vs bissecção genérica | ≤ 2,1×10⁻¹⁶ |
+| T9b | `b_crit/r_s = 2,5980762114`; `r_t → 1,5r_s` como `√δ` | expoente 0,50007 |
+| T9c | enrolamento diverge como `−ln δ`, sem NaN | inclinação `1/2π` |
+| T10 | σ dentro vs fora da integral: diferença cresce como `(r_s/r_t)^1` | expoente 1,00005 |
+
+38 verificações, 0 falhas. **T11** (não-regressão) é a suite da Fase 1 rodada
+sem alteração: os mesmos 44 checks, nos mesmos dígitos.
+
+Dois resultados saíram mais fortes do que o pedido e valem como validação
+independente da geometria:
+
+- **T8c.** O erro de T8 não é ruído: `Δφ = 2(r_s/b) + 2,9455(r_s/b)²`, e
+  `15π/16 = 2,94524`. O integrador acerta o segundo coeficiente da expansão,
+  não só o termo dominante.
+- **T9c.** A inclinação medida das voltas contra `−ln δ` é `0,1591568`, e
+  `1/2π = 0,1591549`. Isso significa `Δφ = −ln δ + const`, ou seja coeficiente
+  de deflexão forte `ā = 1` — o valor analítico conhecido para Schwarzschild.
+- **T9b.** `r_t/r_ph − 1 = 0,8165·√δ`, e `√(2/3) = 0,81650`: o expoente ½ e o
+  coeficiente da raiz dupla, ambos.
+
 Para T4 a forma fechada com `b > 0` também foi derivada, e é o teste mais forte
 do ponto de retorno:
 
@@ -133,9 +211,20 @@ do ponto de retorno:
 
 que no limite `b → 0` vira `2 N_A σ ρ₀ r₀² (1/r_in − 1/r_out)`.
 
+## Um achado no integrador, que vale registrar
+
+`max_depth` limita a **profundidade** da recursão, não o **número de
+avaliações** — e a recursão é binária, então 50 níveis são 2⁵⁰ folhas. Quando a
+tolerância pedida cai abaixo do epsilon de máquina (`|S2−S1|` não consegue mais
+encolher), o critério nunca é satisfeito e o processo trava. Apareceu na
+primeira execução de T9c com `rel_tol = 10⁻¹⁴`.
+
+`IntegratorOpts::max_evals` é o teto global que transforma isso em resultado
+degradado e **sinalizado** (`Result::tolerance_met = false`) em vez de um
+processo pendurado. Importa mais ainda quando forem 10⁵ geodésicas em paralelo.
+
 ## Ainda não implementado
 
-Fase 2 (Schwarzschild, captura, redshift atuando) e Fase 3 (disco espesso,
-varredura em paralelo, regeneração NC). Nada da Fase 2 está aqui: `metric` só
-aceita `minkowski`, e `Metric::r_turning` tem uma implementação genérica por
-bisecção que **não trata captura** — está documentado no ponto.
+Fase 3: disco espesso com `ρ(r,θ)`, varredura paralela, regeneração NC. O
+caminho não esférico existe e lança `std::logic_error` explícito — a estrutura
+dos dois ramos já está pronta, falta o ângulo `ψ` ao longo do raio.
