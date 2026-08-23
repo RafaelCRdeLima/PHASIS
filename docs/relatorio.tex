@@ -1,0 +1,737 @@
+\documentclass[10pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
+\usepackage[margin=2.1cm,top=2.3cm,bottom=2.2cm]{geometry}
+\usepackage{newtxtext,newtxmath}
+\usepackage{inconsolata}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[colorlinks=true,linkcolor=azul,urlcolor=azul]{hyperref}
+
+\definecolor{azul}{HTML}{2A4B8D}
+\definecolor{ferrugem}{HTML}{A63A26}
+\definecolor{fundo}{HTML}{F4F4F0}
+\definecolor{borda}{HTML}{D8D8D1}
+\definecolor{cinza}{HTML}{5A5F66}
+\definecolor{verde}{HTML}{2E7D4F}
+
+\tcbuselibrary{skins,breakable}
+
+% ---- caixa de equacao ------------------------------------------------
+\newenvironment{eqn}[2]{%
+  \def\eqnnum{#1}\def\eqnsrc{#2}%
+  \begin{tcolorbox}[enhanced, breakable, sharp corners,
+    colback=fundo, colframe=borda, boxrule=0.4pt,
+    borderline west={1.6pt}{0pt}{azul},
+    left=8pt, right=8pt, top=5pt, bottom=3pt,
+    before skip=8pt, after skip=3pt]%
+}{%
+  \par\vspace{3pt}{\color{borda}\rule{\linewidth}{0.3pt}}\par\vspace{1pt}%
+  {\footnotesize\bfseries\color{azul}(\eqnnum)}\hfill
+  {\footnotesize\color{cinza}\ttfamily\eqnsrc}%
+  \end{tcolorbox}}
+
+\newcommand{\nota}[1]{\par\vspace{2pt}{\footnotesize\color{cinza}#1}\par}
+
+% ---- estado de um problema -------------------------------------------
+\newcommand{\chip}[2]{%
+  \tcbox[on line, sharp corners, boxrule=0.5pt, colframe=#1, colback=white,
+         left=3pt,right=3pt,top=1pt,bottom=1pt, box align=base]
+        {\scriptsize\bfseries\color{#1}\MakeUppercase{#2}}}
+\newcommand{\bloqueia}{\chip{ferrugem}{bloqueia}}
+\newcommand{\divida}{\chip{azul}{dívida}}
+\newcommand{\limite}{\chip{cinza}{limite}}
+\newcommand{\fechado}{\chip{verde}{fechado}}
+
+\newcommand{\prob}[3]{%
+  \par\vspace{11pt}{\color{borda}\rule{\linewidth}{0.4pt}}\par\vspace{5pt}%
+  \noindent\makebox[2.4em][l]{\bfseries\color{azul}#1}%
+  \begin{minipage}[t]{\dimexpr\linewidth-2.4em\relax}%
+  {\bfseries #2}\hspace{6pt}#3\par\vspace{3pt}}
+\newcommand{\fimprob}{\end{minipage}\par}
+
+\newcommand{\loc}[1]{\par\vspace{3pt}{\footnotesize\color{cinza}\ttfamily #1}\par}
+\newcommand{\evid}[1]{%
+  \par\vspace{4pt}
+  \begin{tcolorbox}[enhanced, sharp corners, colback=fundo, colframe=borda,
+    boxrule=0.4pt, borderline west={1.6pt}{0pt}{cinza},
+    left=6pt,right=6pt,top=3pt,bottom=3pt, before skip=2pt, after skip=4pt]
+  {\ttfamily\footnotesize #1}
+  \end{tcolorbox}}
+
+\titleformat{\section}{\normalfont\large\bfseries\color{azul}}{\thesection.}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{}{0em}{}
+\titlespacing{\section}{0pt}{18pt}{6pt}
+\titlespacing{\subsection}{0pt}{14pt}{4pt}
+
+\pagestyle{fancy}\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\footnotesize\color{cinza}PHASIS --- equações e pendências}
+\fancyhead[R]{\footnotesize\color{cinza}\thepage}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\emergencystretch=2.5em
+\hbadness=10000
+
+\newcommand{\rt}{r_{\rm t}}
+\newcommand{\rs}{r_{\rm s}}
+\newcommand{\Einf}{E_\infty}
+\newcommand{\Eloc}{E_{\rm loc}}
+
+\begin{document}
+
+\begin{center}
+{\footnotesize\color{cinza}\MakeUppercase{Relatório de estado}\quad$\cdot$\quad
+22 de agosto de 2026\quad$\cdot$\quad revisto após a corrente neutra}\\[6pt]
+{\LARGE\bfseries Equações e Pendências do PHASIS}\\[5pt]
+\begin{minipage}{0.86\linewidth}\centering
+Onde vive cada equação física, do dipolo de cor à geodésica nula, e os
+problemas abertos --- ordenados por aquilo que impede a varredura de
+produção.
+\end{minipage}\\[8pt]
+{\small\color{cinza}
+\textbf{30} equações \quad$\cdot$\quad
+\textbf{247} verificações \quad$\cdot$\quad
+\textbf{0} falhas \quad$\cdot$\quad
+\textbf{12} problemas abertos, 2 fechados}
+\end{center}
+
+\vspace{6pt}
+
+% =====================================================================
+\section{As equações, e onde elas estão}
+
+Duas cadeias independentes, acopladas \emph{por arquivo} --- a tabela de
+seção de choque --- e não por link. O \texttt{dipole/} produz
+$\sigma(E)$; o PHASIS a consome ao longo de geodésicas.
+
+\subsection{A. Seção de choque $\nu N$}
+
+\[
+\psi_T,\psi_L \;\longrightarrow\; \sigma_{\rm dip}
+\;\longrightarrow\; F_T,F_L
+\;\longrightarrow\; \frac{d^2\sigma}{dx\,dy}
+\;\longrightarrow\; \sigma_{CC}(E)
+\]
+
+Formalismo de Kutak \& Kwieciński, EPJ C29 (2003) 521, eqs.~(2), (8),
+(9), (12), (13).
+
+\begin{eqn}{1}{dipole/src/wavefunctions.cpp:11 · epsilon2}
+\[ \varepsilon^2(z,Q^2) = z(1-z)Q^2 + z\,m^2 + (1-z)\,\mu^2 \]
+\nota{Massa transversa efetiva do dipolo quark--antiquark. $m$ e $\mu$
+são as massas dos dois sabores do canal; $z$ é a fração de momento
+longitudinal.}
+\end{eqn}
+
+\begin{eqn}{2}{dipole/src/wavefunctions.cpp:18 · psiT2\_pre}
+\[ |\psi_T|^2 = \frac{6\alpha_{\rm EW}}{(2\pi)^2}
+\Big[ (g_V^2+g_A^2)(z^2+\bar z^2)\,\varepsilon^2 K_1^2(\varepsilon r)
++ \big( g_V^2(zm+\bar z\mu)^2 + g_A^2(zm-\bar z\mu)^2 \big) K_0^2(\varepsilon r) \Big] \]
+\nota{Com $\bar z = 1-z$. As Bessel modificadas vêm de
+\texttt{std::cyl\_bessel\_k} (C++17); confere com Boost a
+$2{,}7\times10^{-16}$, o que tirou o Boost das dependências.}
+\end{eqn}
+
+\begin{eqn}{3}{dipole/src/wavefunctions.cpp:47 · psiL2\_pre}
+\begin{align*}
+|\psi_L|^2 &= \frac{6\alpha_{\rm EW}}{(2\pi)^2 Q^2}
+\Big[ A\,\varepsilon^2 K_1^2 + \big( g_V^2 B_V^2 + g_A^2 B_A^2 \big) K_0^2 \Big] \\
+A &= g_V^2(m-\mu)^2 + g_A^2(m+\mu)^2 \\
+B_{V,A} &= 2Q^2 z\bar z + (m\mp\mu)(zm \mp \bar z\mu)
+\end{align*}
+\nota{Não se assume simetria $z \leftrightarrow 1-z$: ela só vale quando
+$m = \mu$, e falha no canal $(c,s)$.}
+\end{eqn}
+
+\begin{eqn}{4}{dipole/include/parameters.hpp · makeCouplings}
+\[ \text{CC:}\quad g_V = -1,\qquad g_A = +1,\qquad
+\alpha_{\rm EW} = \frac{M_W^2 G_F}{4\pi\sqrt2} \]
+\nota{Canais favorecidos por Cabibbo: $u\bar d$ e $c\bar s$. Os dois
+somados dão o $\Sigma(\text{carga}^2)$ efetivo $=4$ das eqs.~(12)--(13)
+de KK.}
+\end{eqn}
+
+\begin{eqn}{5}{dipole/src/dipole\_models.cpp:17 · sigmaDipoleGBW}
+\[ \sigma_{\rm dip}(r,x) = \sigma_0\left[1 - e^{-r^2/4R_0^2(x)}\right],
+\qquad R_0^2(x) = Q_0^{-2}\left(\frac{x}{x_0}\right)^{\!\lambda} \]
+\[ \sigma_0 = 29{,}12~\text{mb},\quad \lambda = 0{,}277,\quad x_0 = 4{,}1\times10^{-5} \]
+\nota{Ajuste de quatro sabores de Golec-Biernat \& Wüsthoff, PRD 59
+(1999) 014017. As massas efetivas (0,14 e 1,5~GeV) fazem parte do
+ajuste --- não são convenção livre.}
+\end{eqn}
+
+\begin{eqn}{6}{dipole/src/dipole\_models.cpp:39 · Qs\_bCGC, amplitude\_bCGC, sigmaDipoleIIM}
+\begin{align*}
+Q_s^2(x,b) &= \left(\frac{x_0}{x}\right)^{\!\lambda}
+\left[e^{-b^2/2B_{\rm CGC}}\right]^{1/\gamma_s},
+\qquad \tau = r\,Q_s \\[3pt]
+N &= N_0\left(\frac{\tau}{2}\right)^{2\gamma_{\rm eff}},\quad
+\gamma_{\rm eff} = \gamma_s + \frac{\ln(2/\tau)}{\kappa\lambda Y},
+\qquad \tau \leq 2 \\[3pt]
+N &= 1 - e^{-A\ln^2(B\tau)}, \qquad \tau > 2 \\[3pt]
+\sigma_{\rm dip} &= 2\!\int\! d^2b\,N = 4\pi\!\int\! b\,db\,N
+\end{align*}
+\nota{$Y = \ln(1/x)$, $\kappa = 9{,}9$ (valor LO do BFKL); $A$ e $B$
+fixados por continuidade em $\tau = 2$. Rezaeian \& Schmidt, PRD 88
+(2013) 074016, Tabela~II. \textbf{Aqui morava um erro de $10^6$}:
+$x_0 = 0{,}00069$, e $6{,}46\times10^{-6}$ é a \emph{incerteza}, não um
+multiplicador.}
+\end{eqn}
+
+\begin{eqn}{7}{dipole/src/integrals.cpp:94 · structureFunctionsTL}
+\[ F_{T,L}(x,Q^2) = \frac{Q^2}{4\pi^2}\int\! d^2r \int_0^1\! dz\,
+|\psi_{T,L}(r,z,Q^2)|^2\,\sigma_{\rm dip}(r,x) \]
+\nota{Quadratura: $r$ em $\ln r$ sobre $[10^{-8},10^{3}]$~GeV$^{-1}$; $z$
+em log pelas \emph{duas} pontas a partir de $z_{\min}=10^{-11}$. Grade
+uniforme perdia o pico em $r\sim1/\varepsilon$ --- 0,025~GeV$^{-1}$ em
+$Q^2 = M_W^2$, contra um passo de 2.}
+\end{eqn}
+
+\begin{eqn}{8}{dipole/src/sigma\_nuN\_core.cpp:39 · d2sigma\_core}
+\[ \frac{d^2\sigma}{dx\,dy} = \frac{G_F^2 M_N E}{\pi}
+\left(\frac{M_V^2}{Q^2+M_V^2}\right)^{\!2}
+\left[ \frac{1+(1-y)^2}{2}F_2 - \frac{y^2}{2}F_L
+\pm y\!\left(1-\frac{y}{2}\right)xF_3 \right] \]
+\nota{Sinal $+$ para $\nu$, $-$ para $\bar\nu$.
+$F_2 = (1-x)^7(F_T+F_L)$ --- regra de contagem de constituintes com
+$n_s = 4$ espectadores. $xF_3$ vem do LHAPDF, não do dipolo.
+$M_V = M_W$ (CC) ou $M_Z$ (NC): é a única constante que separa as duas
+correntes.}
+\end{eqn}
+
+\begin{eqn}{9}{dipole/src/sigma\_nuN\_core.cpp:86 · sigmaNuN}
+\[ \sigma(E) = \int_{Q^2_{\min}}^{0{,}999\,s}\!\!dQ^2
+\int_{Q^2/s}^{1}\!dx\;\frac{1}{x\,s}\,\frac{d^2\sigma}{dx\,dy},
+\qquad y = \frac{Q^2}{x s},\quad s = 2M_N E \]
+\nota{Simpson composto em $\ln Q^2$ e $\ln x$, com \emph{densidade} de
+nós por década fixa (não número fixo), e $N_{\ln x}$ constante ao longo
+do laço de $Q^2$. \textbf{O extremo inferior em $x$ é exatamente
+$y = 1$} --- ver a nota de fechamento da Parte II.}
+\end{eqn}
+
+A tabela \textbf{colinear} usa exatamente (8) e (9), com $F_2$, $F_L$ e
+$xF_3$ do yadism NLO sobre NNPDF3.1, e \emph{sem} o fator $(1-x)^7$ ---
+os PDFs colineares já se anulam em $x\to1$ sozinhos.
+\texttt{tools/make\_collinear\_table.py}.
+
+\subsection{B. Transporte ao longo da geodésica}
+
+\begin{eqn}{10}{include/phasis/metric.hpp:18}
+\[ ds^2 = -f(r)\,dt^2 + h(r)\,dr^2 + r^2 d\Omega^2,
+\qquad \text{Schwarzschild: } f = 1-\frac{\rs}{r},\; h = \frac{1}{f} \]
+\nota{A interface expõe só $f$ e $h$. Nada a jusante supõe $hf = 1$ ---
+em Schwarzschild o produto some, em métricas gerais não.}
+\end{eqn}
+
+\begin{eqn}{11}{src/metric.cpp:8 · Metric::E\_local}
+\[ \Eloc(r) = \frac{\Einf}{\sqrt{f(r)}} \]
+\nota{A energia pedida a $\sigma$ é sempre a \emph{local}, medida pelo
+observador estático no ponto. Fica \emph{dentro} da integral de $\tau$,
+mesmo na Fase~1 onde $f=1$ e fatoraria --- é o que o teste T10
+verifica.}
+\end{eqn}
+
+\begin{eqn}{12}{src/metric.cpp:64 · Metric::r\_turning ; Schwarzschild::r\_turning}
+\[ g(r) \equiv \frac{r}{\sqrt{f(r)}} = b
+\qquad\Longrightarrow\qquad
+\rt = \frac{2b}{\sqrt3}\cos\!\left[\frac{1}{3}\arccos\!\left(-\frac{3\sqrt3\,\rs}{2b}\right)\right] \]
+\nota{A rota genérica bissecta $g(r)-b$, descendo a partir de
+$r_{\max}$ e parando quando $f$ deixa de ser positivo. As duas rotas se
+validam uma contra a outra.}
+\end{eqn}
+
+\begin{eqn}{13}{src/metric.cpp · Schwarzschild::is\_captured, r\_photon\_sphere}
+\[ b_{\rm crit} = \frac{3\sqrt3}{2}\rs = g(1{,}5\,\rs),
+\qquad \text{captura} \iff 4b^2 \leq 27\rs^2,
+\qquad r_{\rm ph} = 1{,}5\,\rs \]
+\nota{$g$ tem \emph{mínimo} na esfera de fótons. É por isso que a
+topologia do raio emitido tem quatro casos e não três: abaixo de
+$r_{\rm ph}$ a condição de escape inverte.}
+\end{eqn}
+
+\begin{eqn}{14--15}{src/metric.cpp:17 · turning\_factor, turning\_factor\_at\_turn}
+\begin{align*}
+w(r) &= 1 - \frac{f(r)\,b^2}{r^2} \qquad\text{(anula-se em $\rt$)}\\[3pt]
+T(r) &= \frac{f(\rt)\,r^2 - f(r)\,\rt^2}{r-\rt},
+\qquad T(\rt) = 2f(\rt)\rt - f'(\rt)\rt^2 \\[3pt]
+T_{\rm Schw} &= (r+\rt) - \frac{\rs}{\rt r}\left(r^2 + r\rt + \rt^2\right)
+\end{align*}
+\nota{A fatoração central do projeto:
+$w = (r-\rt)\,T(r)\,/\,\big(f(\rt)r^2\big)$, com $T$ regular e positiva
+em $\rt$.}
+\end{eqn}
+
+\begin{eqn}{16}{src/trace.cpp:121 · Geometry::dl\_ds ; ray\_derivatives}
+\[ \text{com } r = \rt + s^2:\qquad
+\frac{dl}{ds} = 2r\sqrt{\frac{h(r)\,f(\rt)}{T(r)}} \]
+\nota{O fator $s$ do jacobiano cancela \emph{analiticamente} a raiz de
+$w$ --- a singularidade integrável do ponto de retorno some antes de
+qualquer aritmética de ponto flutuante. Sobra a divergência
+\emph{logarítmica} quando $b\to b_{\rm crit}^+$, que é física: o raio
+enrola na esfera de fótons.}
+\end{eqn}
+
+\begin{eqn}{17}{src/trace.cpp:193 · half\_sweep\_angle ; ray\_derivatives}
+\[ \frac{d\varphi}{dr} = \frac{b}{r^2}\frac{\sqrt{h f}}{\sqrt w},
+\qquad\qquad \frac{d\psi}{dl} = \frac{b\sqrt f}{r^2} \]
+\nota{O $\sqrt f$ não pode faltar: como $1/\sqrt f \approx 1+\rs/2r$,
+omiti-lo injeta um termo da \emph{mesma ordem} da resposta e dá
+$\Delta\varphi = 3\rs/b$ em vez de $2\rs/b$. Foi um bug real; T8 depois
+pegou o coeficiente de segunda ordem, $15\pi/16$.}
+\end{eqn}
+
+\begin{eqn}{18}{src/trace.cpp:161 · Integrand::operator() ; trace\_ray}
+\[ \tau = \int N_A\,\rho(r,\theta)\,\sigma\big(\Eloc(r)\big)\,dl,
+\qquad P_{\rm surv} = e^{-\tau},
+\qquad \cos\theta = \sin i \,\sin\psi \]
+\nota{Movimento planar: basta girar o plano orbital. $i$ é a inclinação
+em relação ao equador; $\psi$ a posição azimutal dentro do plano, medida
+da linha de nodos. Perfil esférico vai por quadratura adaptativa;
+perfil com $\theta$ exige a rota de EDO acoplada --- ver \textbf{P1}.}
+\end{eqn}
+
+\begin{eqn}{19}{src/trace.cpp:105 · Geometry::Mode}
+\begin{align*}
+\text{NoTurn (emitido para fora, } b<b_{\rm crit}):&\quad
+\frac{dl}{ds} = 2s\sqrt{\frac{h}{w}},\quad \text{âncora } r_{\rm emit}\\
+\text{Radial } (b=0):&\quad \frac{dl}{ds} = 2s\sqrt{h}
+\end{align*}
+\nota{Nesse regime o ponto de retorno \emph{não existe} --- não é
+virtual, é ausente, porque $b < \min g$. Mas $w$ nunca chega perto de
+zero, então não há singularidade e não há o que fatorar. O caso radial
+precisa de rota própria porque $\rt = 0$ e $f(0)$ são ambos
+singulares.}
+\end{eqn}
+
+\begin{eqn}{20}{src/emission.cpp:12 · b\_from\_emission}
+\[ b = \frac{r_{\rm emit}\sin\psi}{\sqrt{f(r_{\rm emit})}} \]
+\nota{No referencial ortonormal estático, com $\psi$ medido da direção
+radial para fora: $L = r_{\rm emit}\Eloc\sin\psi$ e
+$\Einf = \sqrt f\,\Eloc$. Auto-verificação: em $\psi = \pi/2$ dá
+$b = g(r)$, ou seja $\rt = r_{\rm emit}$. Emissão isotrópica local é
+\textbf{$\cos\psi$ uniforme}, não $\psi$ uniforme.}
+\end{eqn}
+
+\begin{eqn}{21}{src/emission.cpp:52 · escape\_cone\_angle, captured\_fraction}
+\[ \sin\psi_c(r) = \frac{b_{\rm crit}\sqrt{f(r)}}{r},
+\qquad f_{\rm cap} = \frac{1-\cos\psi_c}{2} \]
+\nota{Dois valores exatos, verificados a 0 e $1{,}4\times10^{-16}$:
+$r = 1{,}5\rs \Rightarrow \psi_c = \pi/2$ e $f_{\rm cap} = 1/2$;
+$r = 3\rs \Rightarrow \psi_c = \pi/4$ e $f_{\rm cap} = (2-\sqrt2)/4$.}
+\end{eqn}
+
+\begin{eqn}{22}{src/cascade.cpp:296 · CascadeCtx ; CascadeKernel}
+\begin{align*}
+\frac{d\phi_i}{dl} &= -n(l)\,\sigma_{\rm tot}(\Eloc^{(i)})\,\phi_i
++ n(l)\sum_{j\geq i}\sigma_{NC}(\Eloc^{(j)})\,G_{ij}\,\phi_j \\[3pt]
+&\qquad \sum_i G_{ij} + G_{{\rm leak},j} = 1
+\end{align*}
+\nota{$y$ é \textbf{invariante sob redshift}: o neutrino inicial e o
+final estão no mesmo $r$, o mesmo $\sqrt f$ aparece nos dois, logo
+$\Eloc/\Eloc' = \Einf/\Einf' = 1-y$. A \emph{estrutura} $G_{ij}$ é
+montada uma vez e nunca mais; só o coeficiente varia ao longo do raio. O
+vazamento é rastreado numa componente própria, nunca empilhado no bin de
+baixo.}
+\end{eqn}
+
+\begin{eqn}{23}{src/cross\_section.cpp:52 · log\_slope\_detail}
+\[ \alpha_{\rm eff}(E) = \frac{d\ln\sigma}{d\ln E},
+\qquad \text{teto}(E) = 3^{\alpha_{\rm eff}/2} \]
+\nota{O teto vem de $\Eloc/\Einf = 1/\sqrt{f(\rt)} \leq \sqrt3$: todo
+raio não capturado tem $\rt \geq 1{,}5\rs$, onde $f = 1/3$. A assinatura
+observável não é o valor do teto --- é a \emph{derivada} dele em $E$.}
+\end{eqn}
+
+\begin{eqn}{24}{src/redshift\_scan.cpp ; trace\_ray(..., freeze\_redshift)}
+\begin{align*}
+R(b,E) &= \frac{\tau_{\rm full} - \tau_{\rm frozen}}{\tau_{\rm frozen}}
+= \big\langle f^{-\alpha/2}\big\rangle - 1,
+\qquad \text{peso } n(r)\sigma\,dl \\[3pt]
+\text{teto} - 1 - R &= \frac{K}{\tau_{\rm frozen}},
+\qquad K \text{ constante}
+\end{align*}
+\nota{Identidade, não ajuste: $\int w\,(g_{\max}-g)$ converge porque
+$(g_{\max}-g)$ se anula exatamente onde o peso diverge, enquanto
+$\int w$ diverge logaritmicamente. Dois pontos extrapolam
+$3^{\alpha/2}$ a $3\times10^{-11}$. $R$ é invariante sob
+$\sigma \to k\sigma$ --- é isso que legitima comparar dipolo com
+colinear apesar da supressão global do primeiro.}
+\end{eqn}
+
+\subsection{C. Corrente neutra}
+
+Camada mais nova. O CC junta dois sabores num dipolo; o $Z$ acopla ao
+\emph{mesmo} sabor dos dois lados, e é daí que vem a maior parte da
+razão $\sigma_{NC}/\sigma_{CC}$ --- não do acoplamento.
+
+\begin{eqn}{25}{dipole/include/parameters.hpp · makeCouplings}
+\[ g_V^q = T_3 - 2Q_q\sin^2\theta_W,
+\qquad g_A^q = T_3,
+\qquad C = \frac{g_Z}{2} = \frac{g}{2\cos\theta_W} \]
+\[ \alpha_{NC} = \frac{C^2}{4\pi} = \frac{\sqrt2\,G_F M_Z^2}{4\pi} \]
+\nota{\textbf{D10, resolvido.} O valor antigo era metade deste --- mas
+\emph{não muda} $\sigma$, porque a tabela divide $F_T$ e $F_L$ pelo
+$\alpha_{\rm EW}$ do próprio canal (convenção DIS). As duas metades do
+comentário antigo eram fatores 2 diferentes, e ambas verdadeiras. A
+mesma rota dá $C_{CC} = g/(2\sqrt2)$ e reproduz o $\alpha_{CC}$ que já
+estava certo.}
+\end{eqn}
+
+\begin{eqn}{26}{dipole/src/sigma\_nuN.cpp · channels\_nc}
+\begin{align*}
+\text{CC:}&\quad (u\bar d),\,(c\bar s) \quad\text{--- 2 dipolos} \\
+\text{NC:}&\quad (u\bar u),\,(d\bar d),\,(s\bar s),\,(c\bar c)
+\quad\text{--- 4 dipolos} \\[4pt]
+&\Sigma_{NC}(g_V^2+g_A^2) = 1{,}3127,
+\qquad \Sigma_{CC} = 2\times2 = 4 \\[3pt]
+&\frac{\Sigma_{NC}}{\Sigma_{CC}}\left(\frac{M_Z}{M_W}\right)^{\!2} = 0{,}4224
+\end{align*}
+\nota{$1{,}3127$ é o $C$ de KK eq.~(15). Mesma população de quarks nos
+dois casos ($u,d,s,c$ --- o ajuste GBW é de quatro sabores), contagem
+diferente de dipolos. Medido: 0,305 em $10^3$~GeV subindo a 0,412 em
+$10^{13}$, com o assintótico 3\% abaixo de 0,4224 por efeito de massa do
+charme.}
+\end{eqn}
+
+\begin{eqn}{27}{dipole/src/sigma\_nuN\_core.cpp · d2sigma\_core, bosonMass2}
+\[ \text{A eq.~(8) vale para as \emph{duas} correntes, com }
+M_V = M_W \text{ ou } M_Z \]
+\nota{Uma função só, não duas. Não é economia de linhas: a razão
+$\sigma_{NC}/\sigma_{CC}$ só significa algo se o resto for idêntico, e
+aqui é o mesmo código. Verificado: depois do refactor a tabela CC saiu
+\textbf{bit a bit idêntica} em 300 energias.}
+\end{eqn}
+
+\begin{eqn}{28}{dipole/src/weak\_structure\_functions.cpp:63 · xF3\_NC\_isoscalar}
+\[ xF_3^{NC} = 2\sum_q g_V^q g_A^q \left( xq - x\bar q \right) \]
+\nota{De $g_L^2 - g_R^2 = g_V g_A$. É puramente de valência, e cai muito
+mais rápido que o total: acima de $\sim10^6$~GeV contribui menos de 1\%.
+O $xF_3$ do \emph{CC}, por comparação, vale $+70\%$ de $\sigma$ em
+$10^3$~GeV e $+0{,}16\%$ em $10^{14}$ --- e é por isso que
+$\sigma_{NC}/\sigma_{CC}$ sobe com a energia.}
+\end{eqn}
+
+\begin{eqn}{29}{dipole/src/sigma\_nuN\_core.cpp · dsigma\_dy, yMinKinematic}
+\[ \frac{d\sigma}{dy} = \int_{Q^2_{\min}/ys}^{x_{\max}}\!\!dx\;
+\frac{d^2\sigma}{dx\,dy},
+\qquad Q^2 = x\,y\,s,
+\qquad \text{suporte: } y \geq \frac{Q^2_{\min}}{s\,x_{\max}} \]
+\nota{O corte inferior em $y$ \textbf{depende da energia} (cai como
+$1/E$), mas o formato de tabela exige uma grade em $y$ comum. A grade usa
+o corte da energia \emph{mais alta}, e nas energias baixas as linhas
+abaixo do próprio corte saem zeradas --- zeros de verdade, não lacunas.
+Ordenar a mesma integral dupla de dois jeitos é teste de consistência:
+$\int dy\,(d\sigma/dy)$ recupera $\sigma$ em 1,04\%, que é o erro do
+trapézio sobre 120 nós.}
+\end{eqn}
+
+\begin{eqn}{30}{src/cascade.cpp · CascadeKernel}
+\[ K_{ij}(E) = \sigma_{NC}(E)\,G_{ij}(E),
+\qquad \sum_i G_{ij}(E) + G_{{\rm leak},j}(E) = 1 \]
+\[ G \text{ tabelado em nós log-}E\text{, interpolado \textbf{linearmente} em } \ln E \]
+\nota{A forma em $y$ da tabela real varia por \textbf{fator 40} entre
+$10^5$ e $10^{11}$~GeV, então $G_{ij}$ constante não serve. A
+linearidade não é conveniência: a identidade de consistência é
+\emph{linear} nos $G$, logo interpolação linear de um conjunto que soma
+1 em cada nó ainda soma 1 \emph{entre} os nós. A cascata conserva número
+exatamente em qualquer $E$. Medido $2{,}22\times10^{-16}$ nos nós e
+entre eles. Os intervalos em $y$ não dependem de $\Eloc$ --- $y$ é
+invariante sob redshift e as bordas dos bins estão em $\Einf$ --- e é
+por isso que dá para tabelar uma vez e nunca reintegrar por passo.}
+\end{eqn}
+
+Fora dessa lista, e sem equação própria: \texttt{src/shell.cpp} localiza
+a casca $\tau = 1$ com um protocolo que não presume monotonicidade ---
+varredura grossa de $\geq32$ pontos, contagem de mudanças de sinal,
+bisseção de \emph{todos} os brackets, e \texttt{shell\_found = false}
+limpo quando não há nenhum.
+
+% =====================================================================
+\section{Os problemas}
+
+Quatorze, ordenados pelo que impede o próximo passo. \bloqueia{} impede
+a varredura de produção; \divida{} é defeito conhecido e documentado;
+\limite{} é limitação honesta, não defeito; \fechado{} foi resolvido
+depois da primeira versão deste relatório.
+
+\prob{P1}{A rota de EDO nunca recebeu a refatoração de emissão}{\bloqueia}
+A topologia do raio emitido (T31--T35) foi aplicada só à rota de
+quadratura. A rota de EDO --- \emph{obrigatória} para perfil não
+esférico, que é justamente o disco --- continua tratando todo raio como
+vindo do infinito: integra os dois ramos sobre a faixa inteira, ignora
+\texttt{r\_emit}, e usa \texttt{geo.r\_turn} onde deveria usar
+\texttt{geo.r\_anchor}.
+
+Medido com perfil esférico e \texttt{force\_ode}, contra a rota de
+quadratura que está validada:
+\evid{raio do infinito, b = 5 r\_s\ \ \ \ \ tau\_quad = 79,1076\ \ \ tau\_ode = 79,1076\ \ \ razao 1,0000000\\
+emitido r=10 r\_s, psi=30$^\circ$\ \ \ \ \ \ \ tau\_quad = 10,2996\ \ \ tau\_ode = 73,5825\ \ \ razao 7,144\\
+emitido r=1,3 r\_s, psi=10$^\circ$\ \ \ \ \ \ tau\_quad = 112,173\ \ \ tau\_ode = LANCOU excecao\\
+emitido r=10 r\_s, psi=0$^\circ$\ \ \ \ \ \ \ \ tau\_quad = \ 9,8136\ \ \ tau\_ode = \ 0\ \ \ \ \ \ \ \ razao 0}
+E no caso astrofísico de verdade --- \texttt{FlaredThinDisk}, que força a
+rota de EDO sem nenhuma flag --- $\psi=10^\circ$ lança,
+$\psi=30^\circ$ produz um \emph{ramo de entrada que não deveria existir}
+(\texttt{tau\_in} = 0,0134) com $r_{\min} = 4{,}67\rs$ \textbf{abaixo} do
+raio de emissão de $10\rs$, e $\psi=0^\circ$ dá zero em silêncio.
+
+O caso radial é o pior dos três: erra \emph{em silêncio}. Nenhum teste
+pegou porque T31--T35 usaram só perfis esféricos.
+\loc{src/trace.cpp:304, :558 · trace\_via\_ode, OdeCtx}
+\fimprob
+
+\prob{P2}{A cascata NC herda o mesmo defeito}{\bloqueia}
+\texttt{transport\_cascade} não menciona \texttt{r\_emit},
+\texttt{outward} nem \texttt{classify} em lugar nenhum, e o seu
+\texttt{CascadeCtx} também calcula \texttt{r = r\_turn + s*s}.
+Transportar um espectro a partir de um emissor a distância finita hoje
+dá o mesmo tipo de resposta errada de P1.
+
+Ficou mais concreto desde a primeira versão deste relatório: a cascata
+agora roda com tabela real, então o defeito dela deixou de ser
+hipotético.
+
+Os dois têm a mesma correção estrutural: a escolha de âncora e o recorte
+por ramo precisam sair de \texttt{trace\_ray} e virar propriedade
+compartilhada da \texttt{Geometry}, consumida pelas três rotas.
+\loc{src/cascade.cpp:296 · CascadeCtx::operator()}
+\fimprob
+
+\prob{P3}{D10 --- o acoplamento NC do dipolo está um fator 2 baixo}{\fechado}
+O valor \emph{estava} errado: $\alpha_{NC} = \sqrt2 G_F M_Z^2/4\pi$, o
+dobro do que havia. Mas o comentário antigo tinha duas metades que
+pareciam se contradizer, e ambas eram verdadeiras --- eram
+\textbf{fatores 2 diferentes}. A tabela divide $F$ pelo
+$\alpha_{\rm EW}$ do próprio canal, então $\alpha_{NC}$ \textbf{cancela}
+e $\sigma$ não se mexe. Por isso a checagem numérica antiga dava o valor
+certo do SM apesar do valor errado da constante: ela mede a razão das
+somas de carga, onde $\alpha$ já saiu.
+
+Ver eq.~(25). Corrigido e o comentário reescrito para explicar por que
+não muda $\sigma$ --- sem isso, alguém ``consertaria'' $\sigma_{NC}$ por
+um fator 2 mais adiante.
+\loc{dipole/include/parameters.hpp · makeCouplings, caso NC}
+\fimprob
+
+\prob{P4}{O oráculo Python divergiu do C++}{\divida}
+O conserto do extremo $y=1$ entrou no C++ e não no oráculo, que ainda
+tem \texttt{if not (0.0 < y < 1.0): continue}.
+
+\textbf{É pior do que a primeira versão deste relatório dizia.} Medido:
+$7{,}628\times10^{-33}$ contra $7{,}352\times10^{-33}$ em $10^9$~GeV,
+3,8\% de diferença. Mas a comparação hoje não isola nada, porque o
+oráculo está atrás de \emph{duas} mudanças estruturais, não uma: a regra
+de densidade de nós por década --- a quadratura dele ainda usa número
+fixo --- e o conserto do $y=1$. E não conhece NC.
+
+Esse arquivo existe para provar que uma mudança no C++ fez exatamente o
+que se pretendia --- foi o instrumento que fechou a campanha de correção
+a $2\times10^{-6}$. Deixá-lo divergente logo \emph{depois} de ele ter
+servido aposenta o instrumento.
+\loc{dipole/tests/oracle/dipole\_oracle.py:174}
+\fimprob
+
+\prob{P5}{Sete arquivos de dados do dipolo estão obsoletos}{\divida}
+\texttt{tau\_profile.dat}, \texttt{tau\_profile\_collapsar.dat},
+\texttt{tau\_profiles\_scan\{,\_GBW,\_IIM\}.dat},
+\texttt{optical\_depth\_CC\_GBW.dat}, \texttt{test\_tau\_1e12.dat} ---
+todos calculados com o $\sigma$ enviesado em 0,23\%. Ou regerar, ou
+marcar o viés no cabeçalho. Nenhum deles alimenta o PHASIS hoje.
+\loc{dipole/data/}
+\fimprob
+
+\prob{P6}{Não existe corrente neutra no dipolo}{\fechado}
+Existe agora, de ponta a ponta: funções de estrutura NC (4 dipolos de
+mesmo sabor), \texttt{xF3\_NC\_isoscalar}, \texttt{dsigma\_dy}, e as
+tabelas \texttt{sigma\_nuN\_NC\_*.dat} e \texttt{dsigma\_dy\_NC\_*.dat}
+com as nove chaves. Eqs.~(25)--(30).
+
+Fechá-lo abriu e fechou também a \textbf{``Fase 4b''}: o
+\texttt{CascadeKernel} lançava para qualquer forma em $y$ dependente de
+$E$, e a tabela real depende por um fator 40. Construído o caminho com
+$G_{ij}(E)$ interpolado linearmente --- ver eq.~(30).
+
+Ponta a ponta: sem absorção CC, $\Sigma\phi + $ vazamento conserva a
+$4{,}4\times10^{-16}$; com CC, a regeneração aumenta o fluxo
+sobrevivente em \textbf{$+4{,}5\%$}.
+\loc{25 verificações novas em tests/test\_phase8.cpp (T44--T50)}
+\fimprob
+
+\prob{P7}{A infraestrutura da Fase 5 está pela metade}{\bloqueia}
+Faltam três coisas que uma varredura de produção precisa: \textbf{T30}
+(determinismo serial contra \texttt{OMP\_NUM\_THREADS} em
+$\{1,2,4,8\}$, bit a bit), o \textbf{hash do conteúdo} das tabelas no
+cabeçalho --- hoje vai o caminho, as nove chaves e o commit, mas não o
+hash --- e \textbf{checkpointing} com escrita incremental,
+\texttt{fsync} e restart.
+
+O reboot mostrou que restart não é luxo: o gerador colinear fatiado
+sobreviveu porque grava fatia por fatia. Se tivesse sido a varredura,
+teria custado a corrida inteira.
+\fimprob
+
+\prob{P8}{Falta a saída CSV do espectro transmitido}{\divida}
+Pendência da Fase 4. A cascata calcula o espectro na saída e o vazamento
+acumulado, mas não há executável que os grave. É o produto que a frente
+3 vai querer plotar contra o ângulo de visada --- e o cálculo já roda,
+falta gravar.
+\fimprob
+
+\prob{P9}{A tabela colinear extrapola o PDF acima de $\sim10^{12}$~GeV}{\limite}
+Abaixo de $x = 10^{-9}$ o LHAPDF continua o PDF por lei de potência. A
+fração de $\sigma$ que vem dali está registrada numa quarta coluna da
+tabela: \textbf{0,0\%} até $2{,}3\times10^{10}$~GeV, \textbf{0,5\%} em
+$1{,}9\times10^{11}$, \textbf{4,3\%} em $1{,}6\times10^{12}$ e
+\textbf{20,7\%} em $1{,}3\times10^{13}$.
+
+Onde essa fração é grande, $\alpha_{\rm eff}$ colinear é
+\emph{propriedade da extrapolação}, não medida --- o que é precisamente
+a hipótese que o dipolo substitui. Não é defeito escondido, mas quem ler
+o arquivo daqui a seis meses precisa saber onde ela começa a mandar.
+\fimprob
+
+\prob{P10}{Emissor orbitando --- a aberração do fluido não existe}{\limite}
+Todo emissor é \textbf{estático}. A aberração entre o referencial do
+fluido e o estático é o \emph{maior} dos dois efeitos:
+$\beta_{\rm orb} = \sqrt{M/r}\,/\sqrt{1-2M/r}$ vale exatamente
+$\mathbf{1/2}$ na ISCO ($r = 6M$), com $\gamma = 2/\sqrt3$, e o fator
+Doppler $\gamma(1\pm\beta)$ varre $1/\sqrt3$ a $\sqrt3$ ---
+\textbf{fator 3 em energia}, contra o teto $\sqrt3$ do redshift
+gravitacional.
+
+Adiá-lo é sequenciamento, não a afirmação de que seja pequeno.
+Introduzi-lo antes significa pôr um fator 3 por cima de um efeito de 3
+pontos percentuais que agora está medido.
+\fimprob
+
+\prob{P11}{A interpolação da tabela de $\sigma$ é C$^0$}{\limite}
+Linear em $(\ln E, \ln\sigma)$. Reproduz uma lei de potência
+\emph{exatamente}, o que é a razão da escolha, mas a derivada analítica
+dela é uma função escada --- daí o estimador de $\alpha_{\rm eff}$ ser
+diferença centrada, e não analítico.
+
+Hoje não custa nada: depois do conserto do extremo $y=1$ o ruído da
+tabela caiu para $7{,}7\times10^{-7}$ e o teto pontual é monótono em 0 de
+89 pontos. Vira limite se alguém quiser a segunda derivada.
+\loc{src/cross\_section.cpp · TableCrossSection::sigma\_tot}
+\fimprob
+
+\prob{P12}{O cenário físico da varredura não está decidido}{\bloqueia}
+A topologia está fixada --- emissor estático em \texttt{r\_emit},
+isotrópico no referencial local. Falta a distribuição de
+\texttt{r\_emit}, o perfil do halo e o espectro injetado. Nenhuma das
+outras pendências depende disso, mas o produto final depende.
+\fimprob
+
+\prob{P13}{A grade em $y$ da tabela diferencial resolve $\sigma$ a 1\%}{\limite}
+O trapézio sobre os 120 nós log-espaçados recupera $1{,}0104$ de
+$\sigma_{NC}$ em $10^{14}$~GeV e $0{,}9988$ em $10^3$. O 1\% é erro de
+quadratura da própria tabela, não do kernel.
+
+Não contamina a conservação: o kernel normaliza pela \textbf{soma dos
+pedaços}, calculada com o mesmo integrador adaptativo que calculou cada
+pedaço, e não por $\sigma_{nc}$. A discrepância entre os dois
+integradores fica exposta em \texttt{worst\_norm\_mismatch()} em vez de
+virar fluxo criado ou destruído ao longo do raio.
+
+Some com mais nós em $y$, ou com trapézio em $\log y$ no leitor. Custa
+1\% na normalização de $\sigma_{NC}$ dentro da cascata.
+\loc{src/cascade.cpp · CascadeKernel::worst\_norm\_mismatch}
+\fimprob
+
+\prob{P14}{$xF_3$ é lixo abaixo do grid do PDF, mas pesa menos de 1\%}{\limite}
+\texttt{xF3\_CC\_isoscalar} subtrai PDFs extrapolados: em
+$x = 10^{-14}$ dá $\mathbf{+12{,}0}$ em $Q^2 = 1$ e $\mathbf{-10{,}6}$ em
+$Q^2 = M_W^2$. O cancelamento $u - \bar u$ não sobrevive à continuação
+por lei de potência abaixo de $x = 10^{-9}$.
+
+Medido o que isso custa em $\sigma_{CC}$, que é o que importa:
+\evid{E = 1e3\ \ \ +69,95\%\ \ \ \ \ \ E = 1e9\ \ \ +0,65\%\\
+E = 1e5\ \ \ +11,71\%\ \ \ \ \ \ E = 1e12\ \ +0,28\%\\
+E = 1e6\ \ \ \ +3,77\%\ \ \ \ \ \ E = 1e14\ \ +0,16\%}
+Onde o $xF_3$ pesa (baixa energia), o $x$ típico é grande e o PDF é
+medido. Onde o PDF é extrapolado (alta energia), o $xF_3$ já não pesa.
+Os dois regimes não se cruzam, e o resíduo fica abaixo de 0,7\% acima de
+$10^9$~GeV --- mas o número está aqui porque ninguém deveria descobrir
+isso sozinho.
+
+De quebra: o comentário em \texttt{weak\_structure\_functions.hpp} está
+desatualizado --- diz 0,99\% em $10^{14}$~GeV, medido com CT10nlo antes
+do conserto do extremo $y=1$. O valor agora é 0,16\%.
+\loc{dipole/src/weak\_structure\_functions.cpp:36}
+\fimprob
+
+\vspace{10pt}
+{\color{borda}\rule{\linewidth}{0.4pt}}
+
+\vspace{6pt}
+{\small\color{cinza}
+\textbf{Resolvido, e registrado aqui porque a classe é recorrente: o
+extremo $y = 1$.} O laço em $x$ começa em $x = Q^2/s$, que é exatamente
+$y = 1$ --- extremo cinemático com valor \emph{finito}, não ponto
+proibido. Zerá-lo punha um degrau no nó de borda e fazia Simpson errar
+em $O(h)$ em vez de $O(h^4)$. Ruído de $\ln\sigma$ caiu de
+$8{,}2\times10^{-4}$ para $1{,}2\times10^{-6}$, e o viés de 0,23\% em
+$\sigma$ sumiu. É a \textbf{terceira ocorrência} da mesma classe:
+fronteira dura avaliada exatamente num extremo de integração --- as duas
+anteriores foram bordas de suporte de densidade, nas Fases 3 e 4.
+\par\vspace{6pt}
+\textbf{E um erro meu, registrado porque o que o pegou importa.} A
+primeira tabela NC deu $\sigma_{NC}/\sigma_{CC} = \mathbf{2{,}49}$ em vez
+de 0,42. Os canais eram \texttt{uu, dd, ss, cc} mas os acoplamentos
+continuaram CC, porque o argumento \texttt{current} não foi passado ao
+construtor da tabela --- e ele tinha \textbf{valor padrão}. O resultado
+era liso, monotônico, sem exceção, com $\alpha_{\rm eff}$
+bem-comportado. Nada interno ao código denunciou; quem denunciou foi o
+\textbf{teste de física}. O conserto estrutural foi tirar o default, e o
+compilador apontou na hora o segundo call site que eu não teria lembrado
+de olhar. Um default silencioso num parâmetro que muda a física é um
+convite.}
+
+% =====================================================================
+\section{O que desbloqueia o quê}
+
+A corrente neutra saiu da frente: P3 e P6 estão fechados, e com eles a
+``Fase 4b'' que o kernel deferia. O que bloqueia a varredura de produção
+não mudou.
+
+\begin{enumerate}[leftmargin=*,itemsep=3.5pt,topsep=3pt]
+\item \textbf{P1 + P2} continuam sendo o bloqueio real. São o mesmo
+defeito estrutural --- a rota de EDO e a cascata nunca receberam a
+topologia de emissão --- e devem ser consertados juntos, com um teste que
+confronte as três rotas no mesmo raio emitido. A ausência desse teste é o
+que deixou passar.
+
+\item \textbf{P7} entra dentro da frente 3, não antes: uma varredura de
+produção sem hash de tabela e sem restart é uma varredura em que não se
+pode confiar nem retomar.
+
+\item \textbf{P4 e P5} continuam curtos e continuam fechando a campanha
+do dipolo. P4 ficou mais urgente: o oráculo está atrás de \emph{dois}
+consertos, e era ele que validava mudanças como as de hoje.
+
+\item \textbf{P8} --- a saída CSV do espectro transmitido --- é o que
+falta para a cascata NC virar produto.
+
+\item \textbf{P13 e P14} são limites medidos, não defeitos. Ficam
+registrados para que ninguém os redescubra do zero.
+
+\item \textbf{P10} por último, como sistemática, pelo argumento da
+própria magnitude.
+\end{enumerate}
+
+\vspace{10pt}{\color{borda}\rule{\linewidth}{0.4pt}}\par\vspace{4pt}
+{\footnotesize\color{cinza}
+PHASIS $\cdot$ commit \texttt{4314c3e} $\cdot$ 247 verificações em 8
+fases, 0 falhas $\cdot$ dipolo e transporte acoplados por arquivo, não
+por link. Os comandos para reproduzir cada número estão em
+\texttt{docs/comandos.pdf}.}
+
+\end{document}
