@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#05090f">
+  <meta name="description" content="PHASIS — colour-dipole neutrino cross sections and their transport along null geodesics.">
+  <title>PHASIS — cross sections meet strong gravity</title>
+  <style>
+    :root { --bg:#05090f; --ink:#f5f7fa; --muted:#a8b4c1; --gold:#ee7b33; --gold-2:#f6a56b;
+            --cyan:#7fb3dc; --cyan-2:#a9cde8; --green:#4ade80; --line:rgba(255,255,255,.13); }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:
+      radial-gradient(circle at 85% 0%, rgba(127,179,220,.10), transparent 34%),
+      radial-gradient(circle at 8% 100%, rgba(238,123,51,.09), transparent 36%), var(--bg);
+      color:var(--ink); font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height:1.55; padding:0 22px 80px; }
+    .wrap { max-width:1000px; margin:0 auto; }
+    header { padding:52px 0 30px; border-bottom:1px solid var(--line); }
+    .logos { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:34px; flex-wrap:wrap; }
+    .plate { background:#fff; border-radius:11px; padding:10px 16px; display:grid; place-items:center; }
+    .plate.udesc img { height:74px; display:block; }
+    .plate.dune img { height:32px; display:block; }
+    .eyebrow { color:var(--gold); text-transform:uppercase; letter-spacing:.2em; font-size:12px; font-weight:750; }
+    h1 { font-size:clamp(34px,5.4vw,62px); line-height:1.0; letter-spacing:-.045em; margin:12px 0 14px; }
+    h1 span { color:var(--gold); }
+    .lead { font-size:clamp(16px,1.7vw,21px); color:var(--muted); max-width:64ch; margin:0; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:16px; margin:34px 0 0; }
+    a.card { display:block; text-decoration:none; color:inherit; border:1px solid var(--line); border-radius:15px;
+      padding:22px 22px 20px; background:linear-gradient(145deg, rgba(16,29,43,.95), rgba(8,16,26,.9));
+      transition:border-color .18s, transform .18s; }
+    a.card:hover { border-color:rgba(238,123,51,.55); transform:translateY(-2px); }
+    a.card:focus-visible { outline:2px solid var(--gold); outline-offset:3px; }
+    a.card h2 { margin:8px 0 8px; font-size:clamp(19px,2vw,25px); letter-spacing:-.02em; }
+    a.card p { margin:0; color:var(--muted); font-size:14.5px; }
+    a.card .tag { font:600 11px/1 ui-monospace, monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--cyan); }
+    a.card.primary { border-color:rgba(238,123,51,.4); }
+    a.card.primary .tag { color:var(--gold-2); }
+    section { margin-top:46px; }
+    section h3 { font-size:15px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:700; margin:0 0 14px; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; }
+    .stat { border:1px solid var(--line); border-radius:12px; padding:15px 17px; background:rgba(14,25,38,.6); }
+    .stat b { display:block; font:780 clamp(22px,2.8vw,34px)/1 ui-monospace, monospace; letter-spacing:-.03em; color:var(--cyan-2); }
+    .stat b.g { color:var(--gold-2); } .stat b.ok { color:var(--green); }
+    .stat span { display:block; color:var(--muted); font-size:13px; margin-top:6px; }
+    p.body { color:#cfd8e1; max-width:70ch; }
+    code { font-family:ui-monospace, monospace; color:var(--cyan); font-size:.92em; }
+    footer { margin-top:56px; padding-top:18px; border-top:1px solid var(--line); color:#7e8994; font-size:13px; }
+    footer a { color:var(--cyan); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logos">
+      <div class="plate udesc"><img src="seminar/assets/udesc-logo.png" alt="UDESC Joinville"></div>
+      <div class="plate dune"><img src="seminar/assets/dune-logo.png" alt="Deep Underground Neutrino Experiment"></div>
+    </div>
+    <div class="eyebrow">PHASIS</div>
+    <h1>Cross sections meet <span>strong gravity</span></h1>
+    <p class="lead">Colour-dipole neutrino cross sections from 10<sup>3</sup> to 10<sup>14</sup> GeV,
+    and what happens to them along null geodesics in Schwarzschild.</p>
+  </header>
+
+  <div class="grid">
+    <a class="card primary" href="seminar/">
+      <span class="tag">presentation</span>
+      <h2>Seminar →</h2>
+      <p>23 slides prepared for the DUNE collaboration meeting at Unicamp, 2026. Two live
+      dashboards: the cross sections with a hover readout, and a Schwarzschild photon orbit
+      integrated in the browser.</p>
+    </a>
+    <a class="card" href="relatorio.pdf">
+      <span class="tag">PDF · 10 pages</span>
+      <h2>Equations and open problems</h2>
+      <p>Where each of the 30 physical equations lives — file and line — and the fourteen open
+      problems, ordered by what blocks the production sweep.</p>
+    </a>
+    <a class="card" href="comandos.pdf">
+      <span class="tag">PDF · 5 pages</span>
+      <h2>Command reference</h2>
+      <p>How to build and run everything, and what test each command lets you perform. Every
+      command was executed before it entered the document.</p>
+    </a>
+  </div>
+
+  <section>
+    <h3>The measurement</h3>
+    <p class="body">Every uncaptured ray in Schwarzschild has a turning point at
+    <code>r_t ≥ 1.5 r_s</code>, where <code>f = 1/3</code>. So the blueshift is capped at
+    <code>√3</code>, and with <code>σ ~ E^α</code> the cross-section ratio is capped at
+    <code>3^(α/2)</code> — exactly. Saturation flattens <code>α</code> at high energy, so the
+    ceiling <em>falls</em> with energy. That derivative is the signature: a PDF refit shifts the
+    normalisation, it does not produce the tilt.</p>
+    <div class="stats">
+      <div class="stat"><b class="ok">247</b><span>acceptance checks, 8 phases, 0 failures</span></div>
+      <div class="stat"><b>3·10⁻¹¹</b><span>agreement of the extrapolated ceiling with 3<sup>α/2</sup></span></div>
+      <div class="stat"><b class="g">1.046</b><span>⟨model/data⟩ against 239 H1+ZEUS points</span></div>
+      <div class="stat"><b>0.412</b><span>σ<sub>NC</sub>/σ<sub>CC</sub> at 10¹³ GeV; counting predicts 0.4224</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h3>How to run it</h3>
+    <p class="body">The transport code needs only <code>g++</code> and the STL. The dipole code has
+    its own build; the two are coupled <em>by file</em> — a cross-section table with declared
+    conventions — and never by link. Full instructions in the command reference above.</p>
+  </section>
+
+  <footer>
+    Source: <a href="https://github.com/RafaelCRdeLima/PHASIS">github.com/RafaelCRdeLima/PHASIS</a>
+    · Rafael C. R. de Lima, UDESC Joinville.
+    The DUNE logo is the public collaboration logo from dunescience.org.
+  </footer>
+</div>
+</body>
+</html>

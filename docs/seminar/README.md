@@ -40,6 +40,17 @@ Both are live and use no network.
   not tabulated. Push the slider to the left edge and the blueshift approaches
   √3 — the only place the ceiling is attained.
 
+## GitHub Pages
+
+`.github/workflows/pages.yml` publishes `docs/` on every push to `main`:
+
+```text
+https://rafaelcrdelima.github.io/PHASIS/seminar/
+```
+
+If the repository is not yet configured to deploy Pages with Actions, select
+**Settings → Pages → Source → GitHub Actions** once.
+
 ## Assets
 
 | file | source |

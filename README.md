@@ -1,5 +1,11 @@
 # PHASIS
 
+**Documentação e apresentação online:**
+[rafaelcrdelima.github.io/PHASIS](https://rafaelcrdelima.github.io/PHASIS/)
+— o seminário (com dois dashboards interativos), o relatório de equações e
+pendências, e a lista de comandos. Publicados automaticamente a partir de
+`docs/`.
+
 Dois subprojetos, acoplados **por arquivo** e não por link:
 
 | | o que faz |
