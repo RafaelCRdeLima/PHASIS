@@ -1,14 +1,13 @@
 # PHASIS
 
-**Documentação e apresentação** em [`docs/`](docs/): o seminário
-([`docs/seminar/index.html`](docs/seminar/index.html), com dois dashboards
-interativos), o relatório de equações e pendências, e a lista de comandos.
-O seminário é um arquivo único e autocontido — abre direto no navegador, sem
-build e sem servidor.
+**Documentação e apresentação online:**
+[rafaelcrdelima.github.io/PHASIS](https://rafaelcrdelima.github.io/PHASIS/)
+— o [seminário](https://rafaelcrdelima.github.io/PHASIS/seminar/) com dois
+dashboards interativos, o relatório de equações e pendências, e a lista de
+comandos. Publicados a partir de `docs/` a cada push em `main`.
 
-O workflow de GitHub Pages existe em `.github/workflows/pages.yml` mas está
-em modo manual: este repositório é **privado**, e Pages aqui exigiria plano
-pago e tornaria `docs/` público.
+O seminário é um arquivo único e autocontido: também abre direto do disco,
+sem build, sem servidor e sem rede.
 
 Dois subprojetos, acoplados **por arquivo** e não por link:
 

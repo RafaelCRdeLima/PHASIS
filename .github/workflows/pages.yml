@@ -1,17 +1,11 @@
 name: Deploy PHASIS docs to Pages
 
-# MANUAL POR ENQUANTO. O repositorio e PRIVADO, e Pages em repositorio
-# privado exige plano pago -- alem de publicar o site PUBLICAMENTE, o que
-# tiraria docs/ do privado. Enquanto essa decisao nao for tomada, o
-# gatilho automatico so produziria uma falha vermelha a cada push.
-#
-# Para ligar: descomente o bloco `push` abaixo e rode uma vez.
-#
-# on:
-#   push:
-#     branches: [main]
-#     paths: ["docs/**", ".github/workflows/pages.yml"]
 on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - ".github/workflows/pages.yml"
   workflow_dispatch:
 
 permissions:
