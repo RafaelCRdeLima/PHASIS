@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#05090f">
+  <meta name="description" content="PHASIS seminar — neutrino cross sections from colour dipoles, and their transport through strong gravity.">
+  <title>PHASIS — cross sections meet strong gravity</title>
+  <style>
+    :root {
+      --bg: #05090f; --panel: #0b1420; --panel-2: #101d2b; --ink: #f5f7fa;
+      --muted: #a8b4c1; --gold: #ee7b33; --gold-2: #f6a56b; --cyan: #7fb3dc;
+      --cyan-2: #a9cde8; --green: #4ade80; --red: #fb7185; --line: rgba(255,255,255,.13);
+      --shadow: 0 28px 80px rgba(0,0,0,.48);
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--ink); }
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    button, a { font: inherit; }
+    .deck { width: 100%; height: 100%; position: relative; background:
+      radial-gradient(circle at 85% 5%, rgba(127,179,220,.09), transparent 28%),
+      radial-gradient(circle at 12% 90%, rgba(238,123,51,.08), transparent 32%), var(--bg); }
+    .slide { position: absolute; inset: 0; padding: clamp(24px, 3.4vw, 62px) clamp(30px, 5.4vw, 100px) clamp(44px, 4.6vw, 78px);
+      display: grid; grid-template-rows: auto 1fr; gap: clamp(14px, 1.8vh, 26px); opacity: 0; visibility: hidden;
+      transform: translateX(30px); transition: opacity .24s ease, transform .24s ease; }
+    .slide.active { opacity: 1; visibility: visible; transform: none; z-index: 2; }
+    .slide::after { content: attr(data-section); position: absolute; right: clamp(20px, 2.6vw, 50px); top: 50%;
+      writing-mode: vertical-rl; text-transform: uppercase; letter-spacing: .22em; font-size: 10px; color: rgba(255,255,255,.24); }
+    .head { display: flex; align-items: end; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+    .eyebrow { color: var(--gold); text-transform: uppercase; letter-spacing: .2em; font-size: clamp(10px, .95vw, 13px); font-weight: 760; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: clamp(38px, 5.6vw, 92px); line-height: .96; letter-spacing: -.05em; max-width: 1080px; margin-bottom: 18px; }
+    h2 { font-size: clamp(26px, 3.6vw, 58px); line-height: 1.02; letter-spacing: -.04em; margin: 5px 0 0; }
+    h3 { font-size: clamp(16px, 1.55vw, 25px); margin-bottom: 10px; }
+    .lead { font-size: clamp(16px, 1.75vw, 28px); line-height: 1.38; color: var(--muted); max-width: 1040px; }
+    .accent { color: var(--gold); } .cyan { color: var(--cyan); } .green { color: var(--green); }
+    .content { min-height: 0; display: grid; align-items: center; }
+    .split { grid-template-columns: minmax(0, .86fr) minmax(0, 1.14fr); gap: clamp(24px, 4vw, 72px); }
+    .split.wide-copy { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); }
+    .split.even { grid-template-columns: 1fr 1fr; }
+    .stack { display: grid; gap: 14px; }
+    .card { background: linear-gradient(145deg, rgba(16,29,43,.96), rgba(8,16,26,.92)); border: 1px solid var(--line);
+      border-radius: 16px; padding: clamp(14px, 1.7vw, 24px); box-shadow: var(--shadow); }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    .cards.two { grid-template-columns: repeat(2, 1fr); }
+    .cards.four { grid-template-columns: repeat(4, 1fr); }
+    .metric { font-size: clamp(26px, 3.4vw, 54px); letter-spacing: -.05em; color: var(--gold-2); font-weight: 780; line-height: 1; }
+    .metric.blue { color: var(--cyan-2); }
+    .metric.ok { color: var(--green); }
+    .metric-label { color: var(--muted); margin-top: 7px; line-height: 1.35; font-size: clamp(12px, 1.05vw, 16px); }
+    ul { margin: 0; padding-left: 1.15em; display: grid; gap: clamp(7px, 1.1vh, 13px); }
+    li { font-size: clamp(14px, 1.3vw, 21px); line-height: 1.35; color: #dce4ec; }
+    li::marker { color: var(--gold); }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--cyan); }
+    .visual { min-width: 0; min-height: 0; height: 100%; display: grid; place-items: center; position: relative; }
+    .visual img { width: 100%; height: 100%; max-height: 66vh; object-fit: contain; border-radius: 12px; background: #fff; padding: 6px; }
+    .caption { position: absolute; left: 14px; bottom: 12px; padding: 7px 11px; border-radius: 8px;
+      background: rgba(2,6,12,.88); color: #d7e0e9; font-size: clamp(10px, .85vw, 13px); border: 1px solid var(--line); }
+    .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; align-items: stretch; }
+    .stage { position: relative; min-height: 96px; padding: 14px 12px; border: 1px solid var(--line); border-radius: 12px;
+      background: rgba(14,25,38,.86); display: flex; flex-direction: column; justify-content: space-between; }
+    .stage:not(:last-child)::after { content: "›"; position: absolute; right: -9px; top: 34%; color: var(--gold); font-size: 28px; z-index: 2; }
+    .stage b { color: var(--gold-2); font-size: clamp(11px, 1vw, 16px); }
+    .stage span { color: var(--muted); font-size: clamp(9px, .74vw, 12px); }
+    .quote { border-left: 4px solid var(--gold); padding-left: 20px; font-size: clamp(20px, 2.4vw, 38px); line-height: 1.25; }
+    .badge { display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(74,222,128,.4); color: #b9f6cd;
+      background: rgba(74,222,128,.08); padding: 6px 11px; border-radius: 999px; font-size: 12.5px; white-space: nowrap; }
+    .badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 14px var(--green); }
+    .badge.warn { border-color: rgba(238,123,51,.45); color: #ffd0ad; background: rgba(238,123,51,.09); }
+    .badge.warn::before { background: var(--gold); box-shadow: 0 0 14px var(--gold); }
+    .formula { padding: 15px 19px; border: 1px solid rgba(127,179,220,.32); border-radius: 11px; background: rgba(127,179,220,.07);
+      font: clamp(14px, 1.35vw, 22px)/1.45 ui-monospace, monospace; color: #dff0fb; }
+    .formula em { color: var(--gold-2); font-style: normal; }
+    .status-line { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; }
+    .status-line b { white-space: nowrap; }
+    table.tbl { width: 100%; border-collapse: collapse; font-size: clamp(12px, 1.05vw, 17px); }
+    table.tbl th { text-align: left; color: var(--muted); font-weight: 700; font-size: .85em;
+      letter-spacing: .04em; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+    table.tbl td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,.06); color: #dce4ec; }
+    table.tbl td.n { text-align: right; font-family: ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+    table.tbl tr:last-child td { border-bottom: none; }
+    .scale { display: grid; gap: 9px; }
+    .scale-row { display: grid; grid-template-columns: 118px 1fr 118px; align-items: center; gap: 13px; }
+    .scale-row em { font: 600 clamp(10px,.92vw,14px)/1 ui-monospace, monospace; font-style: normal; color: var(--muted); }
+    .scale-row b { font-size: clamp(11px, 1vw, 15px); color: var(--ink); }
+    .bar { height: 26px; border-radius: 6px; position: relative; background: rgba(255,255,255,.05); border: 1px solid var(--line); }
+    .bar i { position: absolute; top: 0; bottom: 0; border-radius: 5px; }
+    .title-slide { grid-template-rows: auto 1fr auto; background:
+      radial-gradient(circle at 50% 40%, rgba(127,179,220,.10), transparent 60%), #000; padding: clamp(30px, 4.4vw, 70px); }
+    .title-slide::after { display: none; }
+    .logos { display: flex; align-items: center; justify-content: space-between; gap: 30px; }
+    .plate { background: #fff; border-radius: 12px; padding: 12px 18px; display: grid; place-items: center; }
+    .plate img { display: block; }
+    .plate.udesc img { height: clamp(64px, 7.6vw, 116px); }
+    .plate.dune img { height: clamp(28px, 3.3vw, 50px); }
+    .title-main { align-self: center; }
+    .meta { display: flex; justify-content: space-between; align-items: center; color: #929ca8; font-size: clamp(11px,1vw,14px); letter-spacing: .08em; }
+    .foot { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; align-items: center; gap: 14px;
+      padding: 10px clamp(18px, 3vw, 50px); background: linear-gradient(transparent, rgba(0,0,0,.88)); pointer-events: none; }
+    .progress { height: 3px; flex: 1; background: rgba(255,255,255,.12); border-radius: 3px; overflow: hidden; }
+    .progress > i { display: block; width: 0; height: 100%; background: linear-gradient(90deg, var(--gold), var(--cyan)); transition: width .2s; }
+    .counter { font: 12px ui-monospace, monospace; color: #b9c2cb; }
+    .controls { position: fixed; right: 18px; bottom: 24px; z-index: 30; display: flex; gap: 7px; opacity: .26; transition: opacity .2s; }
+    .controls:hover { opacity: 1; }
+    .controls button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); color: #fff; background: rgba(5,9,15,.85); cursor: pointer; }
+    .speaker-note { display: none; position: fixed; z-index: 50; left: 5vw; right: 5vw; bottom: 6vh; max-height: 34vh; overflow: auto;
+      padding: 18px 22px; border: 1px solid rgba(238,123,51,.5); border-radius: 13px; background: rgba(4,8,13,.96); color: #e8edf2; box-shadow: var(--shadow); font-size: 15px; }
+    body.notes .slide.active .speaker-note { display: block; }
+    .help { position: fixed; inset: 0; z-index: 100; display: none; place-items: center; background: rgba(0,0,0,.74); }
+    .help.open { display: grid; }
+    .help .card { max-width: 620px; width: calc(100% - 40px); }
+    body.overview { overflow: auto; }
+    body.overview .deck { height: auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; padding: 22px; }
+    body.overview .slide { position: relative; inset: auto; aspect-ratio: 16/9; padding: 22px; opacity: 1; visibility: visible; transform: none; overflow: hidden; border: 1px solid var(--line); border-radius: 11px; cursor: pointer; }
+    body.overview .slide * { pointer-events: none; }
+    body.overview .slide h2 { font-size: 26px; } body.overview .slide h1 { font-size: 36px; }
+    body.overview .foot, body.overview .controls { display: none; }
+    /* ---------- dashboards ---------- */
+    .dash { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(230px,.5fr); gap: clamp(16px,2vw,30px); height: 100%; min-height: 0; }
+    .plotwrap { position: relative; min-width: 0; min-height: 0; border: 1px solid var(--line); border-radius: 14px;
+      background: rgba(8,16,26,.7); overflow: hidden; }
+    .plotwrap canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+    .readout { display: grid; gap: 11px; align-content: start; min-width: 0; }
+    .ro { border: 1px solid var(--line); border-radius: 11px; padding: 10px 13px; background: rgba(14,25,38,.8); }
+    .ro .k { color: var(--muted); font-size: clamp(10px,.9vw,13.5px); letter-spacing: .06em; }
+    .ro .v { font: 700 clamp(17px,1.9vw,29px)/1.1 ui-monospace, monospace; color: var(--cyan-2); letter-spacing: -.02em; margin-top: 3px; }
+    .ro .v.g { color: var(--gold-2); } .ro .v.ok { color: var(--green); }
+    .legend { display: flex; flex-wrap: wrap; gap: 9px 16px; font-size: clamp(10px,.9vw,13.5px); color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 15px; height: 3px; border-radius: 2px; display: inline-block; }
+    .ctlrow { display: grid; gap: 5px; }
+    .ctlrow label { font-size: clamp(10px,.9vw,13.5px); color: var(--muted); letter-spacing: .06em; }
+    input[type=range] { width: 100%; accent-color: var(--gold); }
+    .toggles { display: flex; flex-wrap: wrap; gap: 7px; }
+    .toggles button { border: 1px solid var(--line); background: rgba(10,18,28,.9); color: var(--muted);
+      border-radius: 999px; padding: 5px 11px; font-size: clamp(10px,.85vw,13px); cursor: pointer; }
+    .toggles button.on { color: #06121c; font-weight: 700; }
+    @media (max-width: 900px) {
+      .split, .split.wide-copy, .split.even, .dash { grid-template-columns: 1fr; }
+      .cards, .cards.four { grid-template-columns: 1fr 1fr; }
+      .pipeline { grid-template-columns: repeat(2, 1fr); } .visual img { max-height: 44vh; }
+    }
+    @media print {
+      @page { size: 16in 9in; margin: 0; }
+      html, body { overflow: visible; background: #05090f !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .deck { height: auto; } .slide { position: relative; opacity: 1; visibility: visible; transform: none; width: 16in; height: 9in; overflow: hidden; break-inside: avoid; break-after: page; }
+      .foot, .controls, .speaker-note, .help { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+<main class="deck" aria-live="polite">
+  <!-- 01 ============================================================ -->
+  <section class="slide title-slide active" data-title="Cover" data-section="PHASIS">
+    <div class="logos">
+      <div class="plate udesc"><img src="assets/udesc-logo.png" alt="UDESC Joinville"></div>
+      <div class="plate dune"><img src="assets/dune-logo.png" alt="Deep Underground Neutrino Experiment"></div>
+    </div>
+    <div class="title-main">
+      <div class="eyebrow">DUNE Collaboration Meeting · Unicamp · 2026</div>
+      <h1>Cross sections meet<br><span class="accent">strong gravity</span></h1>
+      <p class="lead"><b>PHASIS</b> — colour-dipole neutrino cross sections from 10<sup>3</sup> to 10<sup>14</sup> GeV,
+      and what happens to them along null geodesics.</p>
+    </div>
+    <div class="meta"><span>Rafael C. R. de Lima · UDESC Joinville</span><span>247 checks · 0 failures · every number measured</span></div>
+    <aside class="speaker-note"><b>Opening:</b> two things that are usually studied by different people — a neutrino cross section and a black-hole spacetime — turn out to be coupled by one number, the logarithmic slope of sigma. That coupling is the result I want to show.</aside>
+  </section>
+
+  <!-- 02 ============================================================ -->
+  <section class="slide" data-title="Where this sits" data-section="Context">
+    <header class="head"><div><div class="eyebrow">01 · Context</div><h2>The same object, five decades away</h2></div><span class="badge">σ<sub>νN</sub> is the shared currency</span></header>
+    <div class="content split wide-copy">
+      <div class="scale">
+        <div class="scale-row"><b>DUNE beam</b><div class="bar"><i style="left:0%;width:9%;background:#ee7b33"></i></div><em>0.5–10 GeV</em></div>
+        <div class="scale-row"><b>Atmospheric</b><div class="bar"><i style="left:6%;width:24%;background:#c98a4e"></i></div><em>1–10³ GeV</em></div>
+        <div class="scale-row"><b>IceCube</b><div class="bar"><i style="left:28%;width:30%;background:#7fb3dc"></i></div><em>10³–10⁷ GeV</em></div>
+        <div class="scale-row"><b>This work</b><div class="bar"><i style="left:28%;width:72%;background:linear-gradient(90deg,#7fb3dc,#a9cde8)"></i></div><em>10³–10¹⁴ GeV</em></div>
+      </div>
+      <div class="stack">
+        <p class="lead">I am not going to claim this changes a DUNE measurement. What travels is the <span class="accent">object and the method</span>:</p>
+        <ul>
+          <li>the same deep-inelastic formalism, evaluated where <span class="cyan">x → 3·10⁻¹¹</span>;</li>
+          <li>the same question about what a cross-section systematic actually costs;</li>
+          <li>a working discipline — every claim a number, every number a test.</li>
+        </ul>
+      </div>
+    </div>
+    <aside class="speaker-note">Be explicit that the energies do not overlap with the DUNE beam. The honest connection is the object and the method, not a shared measurement. Say this early so nobody spends the talk waiting for a claim that will not come.</aside>
+  </section>
+
+  <!-- 03 ============================================================ -->
+  <section class="slide" data-title="The question" data-section="Motivation">
+    <header class="head"><div><div class="eyebrow">02 · Motivation</div><h2>One question</h2></div></header>
+    <div class="content split wide-copy">
+      <div class="stack">
+        <p class="quote">A neutrino is blueshifted as it falls toward a compact object. Its cross section grows. Does the geometry leave a fingerprint in what escapes?</p>
+        <div class="formula">E<sub>loc</sub> = E<sub>∞</sub> / √f(r) &nbsp;→&nbsp; σ grows &nbsp;→&nbsp; τ grows &nbsp;→&nbsp; <em>how much?</em></div>
+      </div>
+      <div class="cards two">
+        <div class="card"><div class="metric blue">√3</div><div class="metric-label">hard ceiling on the blueshift: every uncaptured ray has r<sub>t</sub> ≥ 1.5 r<sub>s</sub>, where f = 1/3</div></div>
+        <div class="card"><div class="metric">3<sup>α/2</sup></div><div class="metric-label">therefore a hard ceiling on the cross-section ratio, set by the <b>slope</b> α of σ(E)</div></div>
+        <div class="card"><div class="metric ok">α</div><div class="metric-label">saturation flattens α at high energy — so the ceiling <b>falls</b> with energy</div></div>
+        <div class="card"><div class="metric" style="color:var(--cyan-2)">dα/dE</div><div class="metric-label">the signature is the <b>derivative</b>, not the value. A PDF refit shifts; it does not tilt.</div></div>
+      </div>
+    </div>
+    <aside class="speaker-note">This is the thesis of the talk in one slide. The ceiling is kinematic and exact. What makes it interesting is that it inherits the energy dependence of alpha, and saturation is precisely what bends alpha.</aside>
+  </section>
+
+  <!-- 04 ============================================================ -->
+  <section class="slide" data-title="Why dipoles" data-section="Cross section">
+    <header class="head"><div><div class="eyebrow">03 · Cross section</div><h2>Where the collinear picture runs out</h2></div><span class="badge warn">x below any PDF grid</span></header>
+    <div class="content split even">
+      <div class="stack">
+        <div class="formula">x ≈ M<sub>W</sub>² / s &nbsp;=&nbsp; 6460 / (2 M<sub>N</sub> E)</div>
+        <table class="tbl">
+          <tr><th>E<sub>ν</sub></th><th style="text-align:right">typical x</th><th style="text-align:right">in a PDF grid?</th></tr>
+          <tr><td>10⁶ GeV</td><td class="n">3·10⁻³</td><td class="n green">measured</td></tr>
+          <tr><td>10⁹ GeV</td><td class="n">3·10⁻⁶</td><td class="n green">measured</td></tr>
+          <tr><td>10¹² GeV</td><td class="n">3·10⁻⁹</td><td class="n accent">grid edge</td></tr>
+          <tr><td>10¹⁴ GeV</td><td class="n">3·10⁻¹¹</td><td class="n" style="color:var(--red)">extrapolated</td></tr>
+        </table>
+      </div>
+      <div class="stack">
+        <p class="lead">Below the grid, LHAPDF continues the PDF by a power law. That is a <b>choice</b>, not a measurement — and it is exactly the choice the dipole picture replaces.</p>
+        <div class="card"><h3>The colour dipole</h3><p class="metric-label">The boson fluctuates into a q q̄ pair of transverse size r; the pair scatters off the nucleon. Unitarity is built in: σ<sub>dip</sub> saturates at large r instead of growing without bound.</p></div>
+      </div>
+    </div>
+    <aside class="speaker-note">The point is not that the collinear calculation is wrong. It is that above about 1e12 GeV it stops being a measurement of anything and becomes a continuation of a fit. We will quantify exactly that fraction later.</aside>
+  </section>
+
+  <!-- 05 ============================================================ -->
+  <section class="slide" data-title="The chain" data-section="Cross section">
+    <header class="head"><div><div class="eyebrow">04 · Cross section</div><h2>Five steps, one file at the end</h2></div></header>
+    <div class="content"><div class="stack" style="gap:22px">
+      <div class="pipeline">
+        <div class="stage"><b>ψ<sub>T</sub>, ψ<sub>L</sub></b><span>light-cone wave functions; g<sub>V</sub>, g<sub>A</sub> per current</span></div>
+        <div class="stage"><b>σ<sub>dip</sub>(r,x)</b><span>GBW and bCGC; saturation scale Q<sub>s</sub>(x)</span></div>
+        <div class="stage"><b>F<sub>T</sub>, F<sub>L</sub></b><span>tabulated once in (x, Q²), bicubic</span></div>
+        <div class="stage"><b>d²σ/dx dy</b><span>one master formula, both currents</span></div>
+        <div class="stage"><b>σ(E), dσ/dy</b><span>tables with nine metadata keys</span></div>
+      </div>
+      <div class="cards two">
+        <div class="card"><h3>Coupled by a file, not by a link</h3><p class="metric-label">The dipole code and the transport code never compile together. The contract is a table with declared conventions — projectile, target, current, units — and a reader that <b>refuses</b> to compare two tables whose conventions differ.</p></div>
+        <div class="card"><h3>Why that matters</h3><p class="metric-label">A ν table and a ν̄ table are both valid cross sections, and their ratio is a perfectly computable number. Only the <b>comparison</b> stops meaning anything — and nothing inside either file can detect that.</p></div>
+      </div>
+    </div></div>
+    <aside class="speaker-note">The nine mandatory metadata keys are the one place where a wrong comparison would pass silently. That is why they are mandatory and why the reader throws instead of defaulting.</aside>
+  </section>
+
+  <!-- 06 ============================================================ -->
+  <section class="slide" data-title="Formalism" data-section="Cross section">
+    <header class="head"><div><div class="eyebrow">05 · Cross section</div><h2>The two ingredients</h2></div><span class="badge">Kutak &amp; Kwieciński, EPJ C29 (2003) 521</span></header>
+    <div class="content split even">
+      <div class="stack">
+        <div class="formula">ε² = z(1−z)Q² + z m² + (1−z) μ²</div>
+        <div class="formula">F<sub>T,L</sub> = <em>Q²/4π²</em> ∫d²r ∫dz |ψ<sub>T,L</sub>|² σ<sub>dip</sub>(r,x)</div>
+        <p class="metric-label">The r integral runs in ln r over [10⁻⁸, 10³] GeV⁻¹, and z is resolved logarithmically from <b>both</b> ends. A uniform grid misses the peak at r ~ 1/ε — which is 0.025 GeV⁻¹ at Q² = M<sub>W</sub>², against a step of 2.</p>
+      </div>
+      <div class="stack">
+        <div class="card"><h3>GBW</h3><div class="formula" style="margin-top:8px">σ<sub>dip</sub> = σ<sub>0</sub>[1 − e<sup>−r²/4R<sub>0</sub>²(x)</sup>], &nbsp; R<sub>0</sub>² = Q<sub>0</sub><sup>−2</sup>(x/x<sub>0</sub>)<sup>λ</sup></div><p class="metric-label" style="margin-top:9px">Four-flavour fit. The effective quark masses are part of the fit, not a free convention.</p></div>
+        <div class="card"><h3>bCGC</h3><p class="metric-label">Impact-parameter dependent, with the BFKL anomalous dimension and the Levin–Tuchin tail. <span class="accent">A factor 10⁶ lived here</span>: x<sub>0</sub> = 0.00069, and 6.46·10⁻⁶ is the <b>uncertainty</b>, not a multiplier.</p></div>
+      </div>
+    </div>
+    <aside class="speaker-note">The x0 story is worth telling briefly: reading the exponent of the quoted uncertainty as a multiplier of the central value made the model give 0.10 of the HERA data it had been fitted to. The data caught it.</aside>
+  </section>
+
+  <!-- 07 ============================================================ -->
+  <section class="slide" data-title="HERA" data-section="Validation">
+    <header class="head"><div><div class="eyebrow">06 · Validation</div><h2>Against data, in the window where saturation lives</h2></div><span class="badge">239 points · ⟨model/data⟩ = 1.046</span></header>
+    <div class="content split" style="grid-template-columns:minmax(0,1.35fr) minmax(0,.65fr)">
+      <div class="visual"><img src="assets/hera.png" alt="Dipole EM limit against combined H1+ZEUS reduced cross section">
+        <div class="caption">H1 + ZEUS combined, EPJ C75 (2015) 580 · x &lt; 10⁻², 0.25 ≤ Q² ≤ 50 GeV²</div></div>
+      <div class="stack">
+        <div class="card"><h3>What is being tested</h3><p class="metric-label">The electromagnetic limit of the same wave functions and the same dipole amplitude, against the reduced cross section. No refitting — the GBW parameters are the published ones.</p></div>
+        <div class="card"><h3>The structure is visible</h3><p class="metric-label">+15% at x &lt; 10⁻⁴ and low Q², on the nose above x ≈ 3·10⁻⁴. That is what a two-parameter saturation model looks like against precision data — and saying so is more useful than quoting the mean alone.</p></div>
+      </div>
+    </div>
+    <aside class="speaker-note">Resist the temptation to quote only the 1.046. The right-hand panel is the honest picture and it is also where the model's limits are visible.</aside>
+  </section>
+
+  <!-- 08 ============================================================ -->
+  <section class="slide" data-title="Literature" data-section="Validation">
+    <header class="head"><div><div class="eyebrow">07 · Validation</div><h2>Against the standard power law</h2></div><span class="badge warn">drawn only where it is declared valid</span></header>
+    <div class="content split" style="grid-template-columns:minmax(0,1.4fr) minmax(0,.6fr)">
+      <div class="visual"><img src="assets/sigma_vs_literatura.png" alt="Cross section against the Gandhi et al. power law">
+        <div class="caption">Gandhi et al., via Formaggio &amp; Zeller, Rev. Mod. Phys. 84 (2012) 1307, eqs. (90)–(91)</div></div>
+      <div class="stack">
+        <div class="formula">σ<sub>CC</sub> = 5.53·10⁻³⁶ cm² (E/GeV)<sup>0.363</sup><br>σ<sub>NC</sub> = 2.31·10⁻³⁶ cm² (E/GeV)<sup>0.363</sup></div>
+        <div class="card"><p class="metric-label">The dipole sits 10–25% below at 10⁷–10⁸ GeV and falls to ~35% at 10¹². But the <b>modern collinear calculation also falls below</b> — 0.92 at 10⁸, 0.59 at 10¹². Not all of the gap is saturation; part of it is a 1996 fit with the PDFs of the time.</p></div>
+      </div>
+    </div>
+    <aside class="speaker-note">Extending a published fit past its stated validity range would attribute to the reference a claim it does not make — and precisely in the region where the physics changes. So the dashed line stops at 1e12.</aside>
+  </section>
+  <!-- 09 ==================== DASHBOARD 1 ============================ -->
+  <section class="slide" data-title="Dashboard: σ(E)" data-section="Dashboard">
+    <header class="head"><div><div class="eyebrow">08 · Dashboard</div><h2>The cross sections, live</h2></div><span class="badge">hover the plot</span></header>
+    <div class="content"><div class="dash">
+      <div class="plotwrap"><canvas id="cvSigma"></canvas></div>
+      <div class="readout">
+        <div class="legend">
+          <span><i style="background:#7fb3dc"></i>GBW CC</span><span><i style="background:#a9cde8"></i>bCGC CC</span>
+          <span><i style="background:#4ade80"></i>collinear CC</span><span><i style="background:#ee7b33"></i>GBW NC</span>
+          <span><i style="background:#f6a56b"></i>bCGC NC</span><span><i style="background:#ffffff"></i>Gandhi et al.</span>
+        </div>
+        <div class="ro"><div class="k">energy</div><div class="v" id="s_E">—</div></div>
+        <div class="ro"><div class="k">σ<sub>CC</sub> · GBW</div><div class="v" id="s_cc">—</div></div>
+        <div class="ro"><div class="k">σ<sub>NC</sub> / σ<sub>CC</sub></div><div class="v g" id="s_r">—</div></div>
+        <div class="ro"><div class="k">α<sub>eff</sub> = d ln σ / d ln E</div><div class="v" id="s_a">—</div></div>
+        <div class="ro"><div class="k">GR × saturation ceiling 3<sup>α/2</sup></div><div class="v ok" id="s_t">—</div></div>
+      </div>
+    </div></div>
+    <aside class="speaker-note">Sweep the pointer from left to right and read the last two boxes falling together. That is the whole measurement in one gesture: alpha flattens, and the ceiling follows it down.</aside>
+  </section>
+
+  <!-- 10 ============================================================ -->
+  <section class="slide" data-title="Neutral current" data-section="Cross section">
+    <header class="head"><div><div class="eyebrow">09 · Cross section</div><h2>Neutral current: four dipoles, not two</h2></div><span class="badge">three independent routes agree</span></header>
+    <div class="content split even">
+      <div class="stack">
+        <div class="card"><h3>Counting</h3><p class="metric-label" style="margin-bottom:8px">CC joins <b>two</b> flavours in a dipole: (u d̄), (c s̄). The Z couples to the <b>same</b> flavour on both sides: (u ū), (d d̄), (s s̄), (c c̄).</p>
+        <div class="formula">Σ<sub>NC</sub>(g<sub>V</sub>²+g<sub>A</sub>²) = 1.3127 &nbsp;·&nbsp; Σ<sub>CC</sub> = 4<br>ratio × (M<sub>Z</sub>/M<sub>W</sub>)² = <em>0.4224</em></div></div>
+        <p class="metric-label">Most of the 0.42 comes from <b>counting dipoles</b>, not from the coupling. Same quark population in both cases.</p>
+      </div>
+      <div class="stack">
+        <table class="tbl">
+          <tr><th>route</th><th style="text-align:right">σ<sub>NC</sub>/σ<sub>CC</sub></th></tr>
+          <tr><td>charge counting (above)</td><td class="n">0.4224</td></tr>
+          <tr><td>Gandhi et al., 2.31/5.53</td><td class="n">0.4177</td></tr>
+          <tr><td>this work, GBW at 10¹³ GeV</td><td class="n">0.4122</td></tr>
+        </table>
+        <div class="visual" style="max-height:34vh"><img src="assets/razao_nc_cc.png" alt="NC to CC ratio versus energy" style="max-height:34vh"></div>
+      </div>
+    </div>
+    <aside class="speaker-note">The rise with energy is the CC xF3 leaving the stage — it is a valence structure function, worth +70% of sigma at 1e3 GeV and +0.16% at 1e14. The asymptote is what the counting predicts.</aside>
+  </section>
+
+  <!-- 11 ============================================================ -->
+  <section class="slide" data-title="A bug worth telling" data-section="Method">
+    <header class="head"><div><div class="eyebrow">10 · Method</div><h2>How a factor 670 was found</h2></div><span class="badge warn">y = 1 is an endpoint, not a forbidden point</span></header>
+    <div class="content split wide-copy">
+      <div class="stack">
+        <p class="lead">A monotonicity test on the ceiling failed. Two measurements killed the easy explanations:</p>
+        <ul>
+          <li>the noise scaled as <span class="cyan">N⁻¹</span>, not N⁻⁴ — so it was not Simpson truncation;</li>
+          <li>doubling the F table from 121 to 241 nodes changed <b>nothing</b> — byte-identical runs.</li>
+        </ul>
+        <p class="metric-label">N⁻¹ with the interpolation irrelevant has one cause: a discontinuity at a quadrature endpoint. The x loop starts at x = Q²/s, which is exactly y = 1 — a kinematic endpoint with a <b>finite</b> integrand, being zeroed.</p>
+      </div>
+      <div class="stack">
+        <table class="tbl">
+          <tr><th></th><th style="text-align:right">noise in ln σ</th><th style="text-align:right">α rises</th></tr>
+          <tr><td>before, 16 nodes/decade</td><td class="n">8.2·10⁻⁴</td><td class="n">37 of 78</td></tr>
+          <tr><td>before, 48 nodes/decade</td><td class="n">2.6·10⁻⁴</td><td class="n">26 of 78</td></tr>
+          <tr><td><b>after</b>, 16 nodes/decade</td><td class="n ok">1.2·10⁻⁶</td><td class="n ok">0 of 78</td></tr>
+          <tr><td><b>after</b>, 48 nodes/decade</td><td class="n ok">1.2·10⁻⁶</td><td class="n ok">0 of 78</td></tr>
+        </table>
+        <div class="card"><p class="metric-label">It also removed a <b>bias</b>: σ rises 0.23%. And it is the <b>third</b> occurrence of one class — a hard boundary evaluated exactly at an integration endpoint. The two earlier ones were density support edges.</p></div>
+      </div>
+    </div>
+    <aside class="speaker-note">The transferable part is the diagnostic, not the bug: measuring the scaling exponent of the noise, and varying the interpolation independently of the quadrature, separated two candidate causes that otherwise look identical.</aside>
+  </section>
+
+  <!-- 12 ============================================================ -->
+  <section class="slide" data-title="Transport" data-section="Geometry">
+    <header class="head"><div><div class="eyebrow">11 · Geometry</div><h2>Transport along a null geodesic</h2></div></header>
+    <div class="content split even">
+      <div class="stack">
+        <div class="formula">ds² = −f(r) dt² + h(r) dr² + r² dΩ²</div>
+        <div class="formula">τ = ∫ N<sub>A</sub> ρ(r,θ) σ(<em>E<sub>loc</sub>(r)</em>) dl, &nbsp; E<sub>loc</sub> = E<sub>∞</sub>/√f</div>
+        <p class="metric-label">σ stays <b>inside</b> the integral even in flat space, where it would factor out. That is a test, not an inefficiency: the moment f ≠ 1 nothing in the integrator has to change.</p>
+      </div>
+      <div class="cards two">
+        <div class="card"><div class="metric blue">r/√f = b</div><div class="metric-label">turning point; closed form in Schwarzschild</div></div>
+        <div class="card"><div class="metric">3√3/2 r<sub>s</sub></div><div class="metric-label">b<sub>crit</sub> — g(r) has a <b>minimum</b> at the photon sphere</div></div>
+        <div class="card"><div class="metric" style="color:var(--cyan-2)">√(hf)</div><div class="metric-label">omitting the √f in dφ/dr gives 3r<sub>s</sub>/b instead of 2r<sub>s</sub>/b — same order as the answer</div></div>
+        <div class="card"><div class="metric ok">15π/16</div><div class="metric-label">second-order deflection coefficient, recovered once the first order was right</div></div>
+      </div>
+    </div>
+    <aside class="speaker-note">The missing sqrt(f) was a real bug and a useful one: it is the same order as the answer, so it does not look like a small error — it looks like a different theory.</aside>
+  </section>
+
+  <!-- 13 ============================================================ -->
+  <section class="slide" data-title="The factorization" data-section="Geometry">
+    <header class="head"><div><div class="eyebrow">12 · Geometry</div><h2>Killing the turning-point singularity on paper</h2></div><span class="badge">before any floating point</span></header>
+    <div class="content split wide-copy">
+      <div class="stack">
+        <div class="formula">w(r) = 1 − f(r) b²/r² &nbsp;&nbsp;<em>(vanishes at r<sub>t</sub>)</em></div>
+        <div class="formula">T(r) = [ f(r<sub>t</sub>) r² − f(r) r<sub>t</sub>² ] / (r − r<sub>t</sub>)</div>
+        <div class="formula">with r = r<sub>t</sub> + s²: &nbsp; dl/ds = 2r √( h f(r<sub>t</sub>) / T(r) )</div>
+      </div>
+      <div class="stack">
+        <div class="card"><h3>What cancels</h3><p class="metric-label">The Jacobian factor s cancels the √(r−r<sub>t</sub>) <b>analytically</b>. The integrable singularity never reaches the arithmetic.</p></div>
+        <div class="card"><h3>What survives, correctly</h3><p class="metric-label">A <b>logarithmic</b> divergence as b → b<sub>crit</sub>⁺. That one is physical: the ray winds on the photon sphere and the proper length really does grow without bound. The substitution killed the square root, not the logarithm.</p></div>
+      </div>
+    </div>
+    <aside class="speaker-note">Distinguish the two divergences clearly. One is an artefact of the coordinate and must be removed exactly; the other is physics and must be preserved.</aside>
+  </section>
+
+  <!-- 14 ============================================================ -->
+  <section class="slide" data-title="Emission" data-section="Geometry">
+    <header class="head"><div><div class="eyebrow">13 · Geometry</div><h2>Emitted rays: four cases, not three</h2></div></header>
+    <div class="content split even">
+      <div class="stack">
+        <div class="formula">b = r<sub>emit</sub> sin ψ / √f(r<sub>emit</sub>)</div>
+        <p class="metric-label">Because g(r) = r/√f has a <b>minimum</b> at the photon sphere, the escape condition <b>inverts</b> below it. Above r<sub>ph</sub>, outward always escapes; below it, outward with b &gt; b<sub>crit</sub> is captured — it rises, turns above the emission point, and falls back.</p>
+        <div class="formula">sin ψ<sub>c</sub> = b<sub>crit</sub> √f(r) / r, &nbsp; f<sub>cap</sub> = (1 − cos ψ<sub>c</sub>)/2</div>
+      </div>
+      <div class="stack">
+        <table class="tbl">
+          <tr><th>r<sub>emit</sub></th><th style="text-align:right">ψ<sub>c</sub></th><th style="text-align:right">captured fraction</th><th style="text-align:right">measured</th></tr>
+          <tr><td>1.5 r<sub>s</sub></td><td class="n">π/2</td><td class="n">1/2</td><td class="n ok">rel 0</td></tr>
+          <tr><td>3.0 r<sub>s</sub></td><td class="n">π/4</td><td class="n">(2−√2)/4</td><td class="n ok">rel 0</td></tr>
+        </table>
+        <div class="card"><p class="metric-label">Isotropic emission in the local frame is <b>cos ψ uniform</b>, not ψ uniform. A Monte Carlo of 10⁶ samples agrees with the analytic fraction to 0.01σ.</p></div>
+        <div class="card"><p class="metric-label">A regime the original specification missed: emitted outward with b &lt; b<sub>crit</sub>, the turning point does not exist — not virtual, <b>absent</b>. But w never approaches zero there, so there is nothing to factor and nothing to cancel.</p></div>
+      </div>
+    </div>
+    <aside class="speaker-note">The inverted case below the photon sphere is the one that is easy to get wrong, because the intuition from rays coming in from infinity points the other way.</aside>
+  </section>
+
+  <!-- 15 ==================== DASHBOARD 2 ============================ -->
+  <section class="slide" data-title="Dashboard: geodesic" data-section="Dashboard">
+    <header class="head"><div><div class="eyebrow">14 · Dashboard</div><h2>One ray, one slider</h2></div><span class="badge">exact Schwarzschild orbit, integrated live</span></header>
+    <div class="content"><div class="dash">
+      <div class="plotwrap"><canvas id="cvRay"></canvas></div>
+      <div class="readout">
+        <div class="ctlrow"><label for="bslider">impact parameter b / b<sub>crit</sub></label><input id="bslider" type="range" min="0" max="1000" value="240"></div>
+        <div class="ro"><div class="k">b / b<sub>crit</sub></div><div class="v" id="r_b">—</div></div>
+        <div class="ro"><div class="k">turning point r<sub>t</sub> / r<sub>s</sub></div><div class="v" id="r_rt">—</div></div>
+        <div class="ro"><div class="k">max blueshift E<sub>loc</sub>/E<sub>∞</sub></div><div class="v g" id="r_bs">—</div></div>
+        <div class="ro"><div class="k">deflection Δφ</div><div class="v" id="r_def">—</div></div>
+        <div class="ro"><div class="k">ceiling at α = 0.36</div><div class="v ok" id="r_ceil">—</div></div>
+        <div class="legend" style="margin-top:2px">
+          <span><i style="background:#fb7185"></i>horizon r<sub>s</sub></span>
+          <span><i style="background:#ee7b33"></i>photon sphere 1.5 r<sub>s</sub></span>
+          <span><i style="background:#7fb3dc"></i>ray</span>
+        </div>
+      </div>
+    </div></div>
+    <aside class="speaker-note">Push the slider to the left edge. The ray winds, r_t approaches 1.5 and the blueshift approaches sqrt(3) — which is where the ceiling 3^(alpha/2) comes from, and it is the only place it is attained.</aside>
+  </section>
+  <!-- 16 ============================================================ -->
+  <section class="slide" data-title="The measurement" data-section="Result">
+    <header class="head"><div><div class="eyebrow">15 · Result</div><h2>α<sub>eff</sub>, and the ceiling it sets</h2></div></header>
+    <div class="content split" style="grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr)">
+      <div class="visual"><img src="assets/alpha_eff.png" alt="Effective slope and the GR times saturation ceiling">
+        <div class="caption">shaded: where the 1996 power-law fit is declared valid</div></div>
+      <div class="stack">
+        <div class="formula">α<sub>eff</sub>(E) = d ln σ / d ln E &nbsp;→&nbsp; ceiling = <em>3<sup>α/2</sup></em></div>
+        <div class="card"><p class="metric-label">The curves cross the reference's <b>constant</b> α = 0.363 near 10⁷ GeV and keep falling to 0.24 at 10¹⁴. The power-law fit is only valid at the start of its own stated range.</p></div>
+        <div class="card"><p class="metric-label">The ceiling falls from <b>1.22 to 1.11</b>. A PDF refit moves the normalisation; it does not produce that tilt. <span class="accent">The derivative is the signature.</span></p></div>
+      </div>
+    </div>
+    <aside class="speaker-note">This is the plot to linger on. The horizontal dashed line is what the community quotes; the falling curves are what saturation does to it.</aside>
+  </section>
+
+  <!-- 17 ============================================================ -->
+  <section class="slide" data-title="Why R" data-section="Result">
+    <header class="head"><div><div class="eyebrow">16 · Result</div><h2>Measure the shape, not the normalisation</h2></div><span class="badge">invariant to 2·10⁻¹³</span></header>
+    <div class="content split wide-copy">
+      <div class="stack">
+        <div class="formula">R(b,E) = (τ<sub>full</sub> − τ<sub>frozen</sub>) / τ<sub>frozen</sub> = ⟨ f<sup>−α/2</sup> ⟩ − 1</div>
+        <p class="lead">Same geometry, same density. Only the <b>argument</b> of σ changes: E<sub>loc</sub>(r) against E<sub>∞</sub>.</p>
+        <ul>
+          <li>the dipole suppresses σ globally <b>and</b> flattens α;</li>
+          <li>comparing τ or P mixes the two, and the first dominates;</li>
+          <li>R is a weighted average of a <b>ratio</b> — a global factor k cancels.</li>
+        </ul>
+      </div>
+      <div class="stack">
+        <div class="card"><h3>Measured</h3><p class="metric-label">Exactly <b>0</b> for k ∈ {0.5, 2} — powers of two, the rescaling is exact in binary — and ≤ 2.6·10⁻¹⁶ for k = 10. Worst of 27 combinations: 2.1·10⁻¹³.</p></div>
+        <div class="card"><h3>Why it is exact</h3><p class="metric-label">The adaptive quadrature uses a purely <b>relative</b> tolerance. Scaling the integrand scales the estimate, the tolerance and the error estimate alike — so the subdivision pattern is identical, not merely similar.</p></div>
+        <div class="card"><p class="metric-label" style="color:#cdd6df">The switch that makes this possible was built for a different reason, two phases earlier. That is worth admitting rather than presenting as foresight.</p></div>
+      </div>
+    </div>
+    <aside class="speaker-note">The freeze-redshift switch existed to test whether the redshift mattered at all. It turned out to be the instrument that isolates shape from normalisation. Say plainly that this was not planned.</aside>
+  </section>
+
+  <!-- 18 ============================================================ -->
+  <section class="slide" data-title="An identity" data-section="Result">
+    <header class="head"><div><div class="eyebrow">17 · Result</div><h2>Not a fit — an identity</h2></div><span class="badge">3·10⁻¹¹</span></header>
+    <div class="content split even">
+      <div class="stack">
+        <div class="formula">ceiling − 1 − R = <em>K / τ<sub>frozen</sub></em>, &nbsp; K constant</div>
+        <p class="metric-label">∫w(g<sub>max</sub> − g) <b>converges</b> as b → b<sub>crit</sub>⁺, because (g<sub>max</sub> − g) vanishes exactly where the weight diverges. ∫w diverges logarithmically. So two points determine the limit — solving two equations on a line, not fitting.</p>
+        <div class="formula">ceiling − 1 = (R₁τ₁ − R₂τ₂)/(τ₁ − τ₂)</div>
+      </div>
+      <div class="stack">
+        <table class="tbl">
+          <tr><th>α</th><th style="text-align:right">K</th><th style="text-align:right">extrapolated</th><th style="text-align:right">3<sup>α/2</sup></th><th style="text-align:right">rel</th></tr>
+          <tr><td>0.20</td><td class="n">8.55704</td><td class="n">1.116123174</td><td class="n">1.116123174</td><td class="n ok">3·10⁻¹¹</td></tr>
+          <tr><td>0.30</td><td class="n">21.18490</td><td class="n">1.179147646</td><td class="n">1.179147646</td><td class="n ok">5·10⁻¹¹</td></tr>
+          <tr><td>0.36</td><td class="n">34.34048</td><td class="n">1.218657950</td><td class="n">1.218657950</td><td class="n ok">6·10⁻¹¹</td></tr>
+        </table>
+        <div class="card"><p class="metric-label">K is constant to <b>six significant figures</b> across six decades in b/b<sub>crit</sub> − 1. That constancy is the content; the extrapolation is then arithmetic.</p></div>
+      </div>
+    </div>
+    <aside class="speaker-note">If K were not constant this would be a fit and worth much less. Showing the constancy first and the extrapolation second is the honest order.</aside>
+  </section>
+
+  <!-- 19 ============================================================ -->
+  <section class="slide" data-title="The number" data-section="Result">
+    <header class="head"><div><div class="eyebrow">18 · Result</div><h2>Dipole against collinear</h2></div></header>
+    <div class="content split even">
+      <div class="stack">
+        <h3>Ceiling difference, in percentage points of σ</h3>
+        <table class="tbl">
+          <tr><th>E<sub>ν</sub></th><th style="text-align:right">GBW</th><th style="text-align:right">bCGC</th></tr>
+          <tr><td>10⁵ GeV</td><td class="n" style="color:var(--red)">−6.5</td><td class="n" style="color:var(--red)">−6.4</td></tr>
+          <tr><td>10⁷ GeV</td><td class="n">+3.4</td><td class="n">−0.4</td></tr>
+          <tr><td>10⁹ GeV</td><td class="n accent">+3.6</td><td class="n">+2.2</td></tr>
+          <tr><td>10¹¹ GeV</td><td class="n">+2.3</td><td class="n">+3.1</td></tr>
+          <tr><td>10¹³ GeV</td><td class="n">+1.1</td><td class="n accent">+3.3</td></tr>
+        </table>
+        <p class="metric-label">The <b>sign inverts</b> near 10⁶ GeV: below it the dipole rises faster and its ceiling is higher. The separation in the predicted direction only establishes itself in the saturation region.</p>
+      </div>
+      <div class="stack">
+        <div class="card"><h3>Magnitude, honestly</h3><p class="metric-label">2 to 4 percentage points — not the 4.3 estimated a priori from 3<sup>0.18</sup> against 3<sup>0.15</sup>.</p></div>
+        <div class="card"><h3>What that costs</h3><p class="metric-label">3 points in σ is Δτ = 0.15 at τ = 5, or <b>16% in P</b>. Detectable in the calculation. Whether it is detectable in a telescope is a different question, and the answer belongs in the paper.</p></div>
+        <div class="card"><p class="metric-label">Measured directly at E = 1.09·10⁷ GeV, b → b<sub>crit</sub>⁺: R = <b>0.1914</b> (dipole) against <b>0.2237</b> (collinear).</p></div>
+      </div>
+    </div>
+    <aside class="speaker-note">Do not oversell. The effect is a few percent and the observability question is genuinely open. Saying so is what makes the rest credible.</aside>
+  </section>
+
+  <!-- 20 ============================================================ -->
+  <section class="slide" data-title="NC cascade" data-section="Result">
+    <header class="head"><div><div class="eyebrow">19 · Result</div><h2>Regeneration: a kernel that has to depend on energy</h2></div><span class="badge">2.2·10⁻¹⁶ at and between nodes</span></header>
+    <div class="content split wide-copy">
+      <div class="stack">
+        <div class="formula">K<sub>ij</sub>(E) = σ<sub>NC</sub>(E) G<sub>ij</sub>(E), &nbsp; Σ<sub>i</sub> G<sub>ij</sub> + G<sub>leak,j</sub> = <em>1</em></div>
+        <p class="metric-label">y is <b>invariant under redshift</b> — initial and final neutrino sit at the same r, the same √f appears in both. So the y intervals linking bin j to bin i never move; only the argument of dσ/dy does.</p>
+        <p class="metric-label">But the real table's y-shape varies by a <b>factor 40</b> between 10⁵ and 10¹¹ GeV. A frozen G<sub>ij</sub> is not an approximation, it is an error.</p>
+      </div>
+      <div class="stack">
+        <div class="card"><h3>Why linear interpolation, specifically</h3><p class="metric-label">The consistency identity is <b>linear</b> in the G. Linear interpolation of a set that sums to 1 at every node still sums to 1 <b>between</b> nodes. Number conservation is exact at every energy, not just at the tabulated ones.</p><p class="metric-label">With a cubic it would fail — and the failure would appear as flux created or destroyed along the ray, which nothing downstream would catch.</p></div>
+        <div class="card"><p class="metric-label">End to end, with CC absorption switched off: Σφ + leakage conserves to <b>4.4·10⁻¹⁶</b>. With it on, regeneration raises the surviving flux by <b>+4.5%</b>.</p></div>
+      </div>
+    </div>
+    <aside class="speaker-note">This is the piece the code had explicitly deferred as "Phase 4b". The linearity argument is the reason the implementation is short and the conservation is exact rather than approximate.</aside>
+  </section>
+
+  <!-- 21 ============================================================ -->
+  <section class="slide" data-title="Limits" data-section="Honesty">
+    <header class="head"><div><div class="eyebrow">20 · Honesty</div><h2>What this does not do</h2></div><span class="badge warn">measured, not guessed</span></header>
+    <div class="content"><div class="cards">
+      <div class="card"><h3>The collinear reference extrapolates</h3><p class="metric-label">Fraction of σ coming from x below the PDF grid: <b>0%</b> up to 2.3·10¹⁰ GeV, 0.5% at 1.9·10¹¹, 4.3% at 1.6·10¹², <b>20.7%</b> at 1.3·10¹³. Above that, its α is a property of the continuation, not a measurement.</p></div>
+      <div class="card"><h3>Emitted rays + non-spherical profile</h3><p class="metric-label">The ODE route never received the emission topology. For an emitted ray it is wrong by a factor 7 in one case, throws in another, and returns τ = 0 <b>in silence</b> for the radial one. Rays from infinity with a spherical profile are validated; the rest is not.</p></div>
+      <div class="card"><h3>The emitter is static</h3><p class="metric-label">Aberration between the fluid and static frames is the <b>larger</b> of the two effects: β = 1/2 exactly at the ISCO, so the Doppler factor sweeps 1/√3 to √3 — a factor 3 in energy, against the √3 ceiling of the gravitational redshift. Deferring it is sequencing, not a claim that it is small.</p></div>
+    </div></div>
+    <aside class="speaker-note">Putting the ODE gap on a slide at a collaboration meeting is deliberate. It is the honest state of the code, and someone in the room may be about to make the same mistake.</aside>
+  </section>
+
+  <!-- 22 ============================================================ -->
+  <section class="slide" data-title="Method" data-section="Method">
+    <header class="head"><div><div class="eyebrow">21 · Method</div><h2>What the tests are actually for</h2></div><span class="badge">247 checks · 8 phases · 0 failures</span></header>
+    <div class="content split wide-copy">
+      <div class="stack">
+        <ul>
+          <li>Every acceptance test has a <b>reference value</b>, not a golden file — an analytic limit, a published number, or an exact identity.</li>
+          <li>Convergence is tested by <b>order</b>, not tolerance: Z<sub>discrete</sub> converges at order 2.00, and that is the assertion.</li>
+          <li>A result that missed its tolerance is <b>flagged</b>, never delivered as if it had not.</li>
+          <li>Silent defaults on physics parameters were removed — one of them produced σ<sub>NC</sub>/σ<sub>CC</sub> = 2.49 instead of 0.42, smoothly and without an exception.</li>
+        </ul>
+      </div>
+      <div class="cards two">
+        <div class="card"><div class="metric ok">0.42</div><div class="metric-label">the physics test that caught the coupling bug — nothing internal to the code did</div></div>
+        <div class="card"><div class="metric">670×</div><div class="metric-label">noise reduction from one endpoint fix, found by measuring a scaling exponent</div></div>
+        <div class="card"><div class="metric blue">9 keys</div><div class="metric-label">mandatory metadata: the one place a wrong comparison would pass silently</div></div>
+        <div class="card"><div class="metric" style="color:var(--cyan-2)">3×</div><div class="metric-label">occurrences of one bug class: a hard boundary at an integration endpoint</div></div>
+      </div>
+    </div>
+    <aside class="speaker-note">The recurring class is the useful lesson to carry away: a support edge, a kinematic endpoint, a capture guard — all the same mistake, treating a boundary condition as a special case instead of a limiting case.</aside>
+  </section>
+
+  <!-- 23 ============================================================ -->
+  <section class="slide title-slide" data-title="Closing" data-section="Conclusion">
+    <div class="logos">
+      <div class="plate udesc"><img src="assets/udesc-logo.png" alt="UDESC Joinville"></div>
+      <div class="plate dune"><img src="assets/dune-logo.png" alt="Deep Underground Neutrino Experiment"></div>
+    </div>
+    <div class="title-main">
+      <h1>The ceiling is exact.<br><span class="accent">Its slope is the physics.</span></h1>
+      <p class="lead">√3 is kinematics. 3<sup>α/2</sup> inherits the cross section. Saturation bends α — so the ceiling falls with energy, and a PDF refit cannot imitate that.</p>
+      <div class="cards two" style="margin-top:20px">
+        <div class="card"><div class="eyebrow">repository</div><p class="lead" style="margin:6px 0 0;font-size:clamp(14px,1.3vw,20px)"><a style="color:var(--ink)" href="https://github.com/RafaelCRdeLima/PHASIS">github.com/RafaelCRdeLima/PHASIS</a></p></div>
+        <div class="card"><div class="eyebrow">controls</div><p class="metric-label" style="margin:6px 0 0">← → navigate · F fullscreen · O overview · N notes · ? help</p></div>
+      </div>
+    </div>
+    <div class="meta"><span>THANK YOU</span><span>questions?</span></div>
+    <aside class="speaker-note">Close on the distinction between what is kinematic and exact, and what is model-dependent and measurable. That is the honest boundary of the result.</aside>
+  </section>
+</main>
+
+<div class="foot" aria-hidden="true"><div class="progress"><i id="bar"></i></div><span class="counter" id="counter">01 / 23</span></div>
+<nav class="controls" aria-label="Presentation controls"><button id="prev" title="Previous">‹</button><button id="next" title="Next">›</button><button id="full" title="Fullscreen">⛶</button><button id="overview" title="Overview">▦</button><button id="helpBtn" title="Help">?</button></nav>
+<div class="help" id="help" role="dialog" aria-modal="true" aria-label="Shortcuts"><div class="card"><h3>Controls</h3><p>←/→, Page Up/Page Down, or Space: navigate<br>Home/End: first/last slide<br>F: fullscreen · O: overview · N: speaker notes · ?: help<br>Esc: close the current mode</p><p class="metric-label">To export PDF, print from the browser in landscape; every slide is one 16:9 page. The two dashboards are live — they need no network.</p></div></div>
+<script>
+const D = {"E":[1000.0,1527.0,2539.0,3878.0,6447.0,9847.0,16370.0,25000.0,38190.0,63490.0,96970.0,161200.0,246200.0,409300.0,625200.0,1039000.0,1587000.0,2424000.0,4030000.0,6156000.0,10230000.0,15630000.0,25980000.0,39690000.0,60620000.0,100800000.0,153900000.0,255900000.0,390800000.0,649700000.0,992300000.0,1650000000.0,2520000000.0,3848000000.0,6398000000.0,9772000000.0,16240000000.0,24810000000.0,41250000000.0,63000000000.0,96220000000.0,160000000000.0,244300000000.0,406200000000.0,620400000000.0,1031000000000.0,1575000000000.0,2619000000000.0,4000000000000.0,6109000000000.0,10160000000000.0,15510000000000.0,25790000000000.0,39380000000000.0,65470000000000.0,100000000000000.0],"ccG":[3.741e-36,5.818e-36,9.763e-36,1.483e-35,2.404e-35,3.529e-35,5.456e-35,7.677e-35,1.059e-34,1.518e-34,2.007e-34,2.743e-34,3.496e-34,4.586e-34,5.668e-34,7.194e-34,8.673e-34,1.036e-33,1.268e-33,1.49e-33,1.792e-33,2.077e-33,2.465e-33,2.831e-33,3.239e-33,3.791e-33,4.309e-33,5.01e-33,5.666e-33,6.553e-33,7.384e-33,8.504e-33,9.553e-33,1.072e-32,1.229e-32,1.376e-32,1.574e-32,1.758e-32,2.007e-32,2.239e-32,2.497e-32,2.843e-32,3.166e-32,3.599e-32,4.004e-32,4.546e-32,5.052e-32,5.73e-32,6.36e-32,7.057e-32,7.991e-32,8.858e-32,1.002e-31,1.11e-31,1.254e-31,1.387e-31],"ccI":[3.122e-36,4.733e-36,7.691e-36,1.137e-35,1.784e-35,2.55e-35,3.831e-35,5.281e-35,7.169e-35,1.015e-34,1.338e-34,1.834e-34,2.356e-34,3.141e-34,3.948e-34,5.132e-34,6.325e-34,7.731e-34,9.739e-34,1.171e-33,1.449e-33,1.718e-33,2.093e-33,2.453e-33,2.862e-33,3.423e-33,3.955e-33,4.68e-33,5.364e-33,6.29e-33,7.157e-33,8.325e-33,9.414e-33,1.062e-32,1.223e-32,1.371e-32,1.57e-32,1.753e-32,1.995e-32,2.218e-32,2.462e-32,2.783e-32,3.077e-32,3.464e-32,3.818e-32,4.282e-32,4.704e-32,5.258e-32,5.76e-32,6.303e-32,7.013e-32,7.655e-32,8.493e-32,9.25e-32,1.024e-31,1.112e-31],"ncG":[1.14e-36,1.789e-36,3.041e-36,4.679e-36,7.716e-36,1.151e-35,1.817e-35,2.603e-35,3.654e-35,5.347e-35,7.185e-35,9.993e-35,1.29e-34,1.717e-34,2.144e-34,2.752e-34,3.344e-34,4.023e-34,4.962e-34,5.858e-34,7.085e-34,8.247e-34,9.828e-34,1.132e-33,1.298e-33,1.524e-33,1.736e-33,2.022e-33,2.291e-33,2.654e-33,2.994e-33,3.453e-33,3.883e-33,4.361e-33,5.005e-33,5.608e-33,6.42e-33,7.18e-33,8.203e-33,9.158e-33,1.022e-32,1.164e-32,1.298e-32,1.476e-32,1.643e-32,1.867e-32,2.076e-32,2.357e-32,2.618e-32,2.907e-32,3.294e-32,3.654e-32,4.136e-32,4.584e-32,5.184e-32,5.741e-32],"ncI":[9.312e-37,1.423e-36,2.341e-36,3.501e-36,5.583e-36,8.106e-36,1.242e-35,1.742e-35,2.405e-35,3.472e-35,4.644e-35,6.474e-35,8.426e-35,1.139e-34,1.447e-34,1.902e-34,2.365e-34,2.913e-34,3.702e-34,4.481e-34,5.583e-34,6.658e-34,8.159e-34,9.607e-34,1.125e-33,1.352e-33,1.569e-33,1.864e-33,2.144e-33,2.523e-33,2.88e-33,3.361e-33,3.811e-33,4.31e-33,4.978e-33,5.599e-33,6.426e-33,7.192e-33,8.209e-33,9.147e-33,1.017e-32,1.153e-32,1.277e-32,1.441e-32,1.591e-32,1.788e-32,1.968e-32,2.204e-32,2.419e-32,2.651e-32,2.955e-32,3.23e-32,3.59e-32,3.915e-32,4.339e-32,4.723e-32],"Ec":[1000.0,1527.0,2539.0,3878.0,6447.0,9847.0,16370.0,25000.0,38190.0,63490.0,96970.0,161200.0,246200.0,409300.0,625200.0,1039000.0,1587000.0,2424000.0,4030000.0,6156000.0,10230000.0,15630000.0,25980000.0,39690000.0,60620000.0,100800000.0,153900000.0,255900000.0,390800000.0,649700000.0,992300000.0,1650000000.0,2520000000.0,3848000000.0,6398000000.0,9772000000.0,16240000000.0,24810000000.0,41250000000.0,63000000000.0,96220000000.0,160000000000.0,244300000000.0,406200000000.0,620400000000.0,1031000000000.0,1575000000000.0,2619000000000.0,4000000000000.0,6109000000000.0,10160000000000.0,15510000000000.0,25790000000000.0,39380000000000.0,65470000000000.0,100000000000000.0],"col":[6.07e-36,9.032e-36,1.435e-35,2.08e-35,3.178e-35,4.434e-35,6.445e-35,8.616e-35,1.131e-34,1.535e-34,1.951e-34,2.564e-34,3.187e-34,4.098e-34,5.019e-34,6.357e-34,7.699e-34,9.282e-34,1.155e-33,1.38e-33,1.701e-33,2.015e-33,2.46e-33,2.894e-33,3.394e-33,4.094e-33,4.773e-33,5.718e-33,6.63e-33,7.896e-33,9.111e-33,1.079e-32,1.24e-32,1.421e-32,1.671e-32,1.909e-32,2.234e-32,2.542e-32,2.962e-32,3.359e-32,3.805e-32,4.409e-32,4.977e-32,5.747e-32,6.47e-32,7.447e-32,8.361e-32,9.593e-32,1.075e-31,1.202e-31,1.374e-31,1.534e-31,1.75e-31,1.95e-31,2.219e-31,2.47e-31],"Ea":[1043.0,1593.0,2649.0,4046.0,6726.0,10270.0,17080.0,26080.0,39840.0,66230.0,101200.0,168200.0,256900.0,392300.0,652200.0,996200.0,1656000.0,2529000.0,4205000.0,6422000.0,9809000.0,16310000.0,24910000.0,41410000.0,63240000.0,96590000.0,160600000.0,245300000.0,407700000.0,622800000.0,1035000000.0,1581000000.0,2415000000.0,4015000000.0,6132000000.0,10190000000.0,15570000000.0,23780000000.0,39540000000.0,60390000000.0,100400000000.0,153300000000.0,254900000000.0,389300000000.0,594600000000.0,988500000000.0,1510000000000.0,2510000000000.0,3834000000000.0,5855000000000.0,9734000000000.0,14870000000000.0,24720000000000.0,37750000000000.0,62760000000000.0,95850000000000.0],"aG":[1.05,1.03,0.9999,0.9682,0.9229,0.8802,0.825,0.7779,0.7311,0.6771,0.6346,0.5873,0.5511,0.5181,0.4824,0.456,0.428,0.4075,0.3859,0.3703,0.3565,0.3422,0.3319,0.3211,0.3132,0.3063,0.2991,0.2938,0.2882,0.284,0.2796,0.2764,0.2734,0.2702,0.2678,0.2652,0.2633,0.2614,0.2594,0.2579,0.2561,0.2548,0.2532,0.252,0.2509,0.2495,0.2484,0.2472,0.2461,0.2451,0.2439,0.2429,0.2418,0.2408,0.2396,0.2387],"aI":[0.9908,0.9684,0.9358,0.9035,0.8596,0.8204,0.7732,0.7356,0.7007,0.6628,0.6341,0.6022,0.5773,0.5537,0.5268,0.5055,0.4816,0.4629,0.4421,0.4261,0.4112,0.3947,0.382,0.368,0.3571,0.347,0.3357,0.3269,0.3171,0.3094,0.3008,0.294,0.2876,0.2804,0.2747,0.2682,0.2631,0.2583,0.2528,0.2484,0.2434,0.2395,0.235,0.2314,0.228,0.224,0.2209,0.2173,0.2144,0.2117,0.2085,0.206,0.2031,0.2007,0.198,0.1959],"Eac":[1043.0,1593.0,2649.0,4046.0,6726.0,10270.0,17080.0,26080.0,39840.0,66230.0,101200.0,168200.0,256900.0,392300.0,652200.0,996200.0,1656000.0,2529000.0,4205000.0,6422000.0,9809000.0,16310000.0,24910000.0,41410000.0,63240000.0,96590000.0,160600000.0,245300000.0,407700000.0,622800000.0,1035000000.0,1581000000.0,2415000000.0,4015000000.0,6132000000.0,10190000000.0,15570000000.0,23780000000.0,39540000000.0,60390000000.0,100400000000.0,153300000000.0,254900000000.0,389300000000.0,594600000000.0,988500000000.0,1510000000000.0,2510000000000.0,3834000000000.0,5855000000000.0,9734000000000.0,14870000000000.0,24720000000000.0,37750000000000.0,62760000000000.0,95850000000000.0],"aC":[0.9467,0.9243,0.89,0.8545,0.8046,0.759,0.7033,0.6591,0.619,0.5778,0.5493,0.5216,0.5028,0.487,0.4708,0.4588,0.4458,0.4355,0.424,0.4148,0.406,0.3961,0.3881,0.3792,0.3723,0.3658,0.3585,0.3526,0.3462,0.341,0.335,0.3304,0.3257,0.3205,0.3163,0.3113,0.3076,0.3036,0.2993,0.2957,0.2916,0.2884,0.2845,0.2815,0.2785,0.2749,0.2724,0.2692,0.2668,0.2643,0.2615,0.2597,0.2573,0.2557,0.2537,0.2521]};
+/* ==================== navigation ==================== */
+(() => {
+  const slides = [...document.querySelectorAll('.slide')];
+  const bar = document.getElementById('bar'), counter = document.getElementById('counter'), help = document.getElementById('help');
+  let index = Math.max(0, Math.min(slides.length - 1, Number(location.hash.slice(1)) - 1 || 0));
+  function show(next, updateHash = true) {
+    index = Math.max(0, Math.min(slides.length - 1, next));
+    slides.forEach((slide, i) => slide.classList.toggle('active', i === index));
+    bar.style.width = `${((index + 1) / slides.length) * 100}%`;
+    counter.textContent = `${String(index + 1).padStart(2,'0')} / ${String(slides.length).padStart(2,'0')}`;
+    document.title = `${slides[index].dataset.title} — PHASIS`;
+    if (updateHash) history.replaceState(null, '', `#${index + 1}`);
+    window.dispatchEvent(new Event('slidechange'));
+  }
+  const step = delta => { if (!document.body.classList.contains('overview')) show(index + delta); };
+  function toggleOverview(force) { document.body.classList.toggle('overview', force); if (!document.body.classList.contains('overview')) show(index); window.dispatchEvent(new Event('slidechange')); }
+  document.getElementById('prev').onclick = () => step(-1);
+  document.getElementById('next').onclick = () => step(1);
+  document.getElementById('full').onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  document.getElementById('overview').onclick = () => toggleOverview(!document.body.classList.contains('overview'));
+  document.getElementById('helpBtn').onclick = () => help.classList.add('open');
+  help.onclick = e => { if (e.target === help) help.classList.remove('open'); };
+  slides.forEach((slide, i) => slide.onclick = e => {
+    if (document.body.classList.contains('overview')) { index = i; toggleOverview(false); }
+  });
+  addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)) { e.preventDefault(); step(1); }
+    else if (['ArrowLeft','ArrowUp','PageUp'].includes(e.key)) { e.preventDefault(); step(-1); }
+    else if (e.key === 'Home') show(0); else if (e.key === 'End') show(slides.length - 1);
+    else if (e.key.toLowerCase() === 'f') document.getElementById('full').click();
+    else if (e.key.toLowerCase() === 'o') toggleOverview(!document.body.classList.contains('overview'));
+    else if (e.key.toLowerCase() === 'n') document.body.classList.toggle('notes');
+    else if (e.key === '?') help.classList.toggle('open');
+    else if (e.key === 'Escape') { help.classList.remove('open'); document.body.classList.remove('notes'); toggleOverview(false); }
+  });
+  let startX = null;
+  addEventListener('touchstart', e => startX = e.changedTouches[0].clientX, {passive:true});
+  addEventListener('touchend', e => { if (startX === null) return; const dx = e.changedTouches[0].clientX - startX; if (Math.abs(dx) > 55) step(dx < 0 ? 1 : -1); startX = null; }, {passive:true});
+  addEventListener('hashchange', () => show(Number(location.hash.slice(1)) - 1 || 0, false));
+  show(index, false);
+})();
+
+/* ==================== shared canvas helpers ==================== */
+function fitCanvas(cv) {
+  const r = cv.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return null;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, r.width, r.height);
+  return { g, w: r.width, h: r.height };
+}
+const lerp = (a, b, t) => a + (b - a) * t;
+function interpLog(xs, ys, x) {           // linear in (log x, log y)
+  if (x <= xs[0]) return ys[0];
+  if (x >= xs[xs.length-1]) return ys[ys.length-1];
+  let i = 1; while (xs[i] < x) i++;
+  const t = (Math.log(x) - Math.log(xs[i-1])) / (Math.log(xs[i]) - Math.log(xs[i-1]));
+  return Math.exp(lerp(Math.log(ys[i-1]), Math.log(ys[i]), t));
+}
+function interpLin(xs, ys, x) {
+  if (x <= xs[0]) return ys[0];
+  if (x >= xs[xs.length-1]) return ys[ys.length-1];
+  let i = 1; while (xs[i] < x) i++;
+  const t = (Math.log(x) - Math.log(xs[i-1])) / (Math.log(xs[i]) - Math.log(xs[i-1]));
+  return lerp(ys[i-1], ys[i], t);
+}
+
+/* ==================== dashboard 1: sigma(E) ==================== */
+(() => {
+  const cv = document.getElementById('cvSigma');
+  const X0 = 3, X1 = 14, Y0 = -36.4, Y1 = -30.6;
+  const PAD = { l: 62, r: 14, t: 14, b: 40 };
+  let hoverE = null;
+
+  const series = [
+    { E: D.E,  y: D.ccG, c: '#7fb3dc', w: 2.2 },
+    { E: D.E,  y: D.ccI, c: '#a9cde8', w: 1.8 },
+    { E: D.Ec, y: D.col, c: '#4ade80', w: 1.8 },
+    { E: D.E,  y: D.ncG, c: '#ee7b33', w: 2.2 },
+    { E: D.E,  y: D.ncI, c: '#f6a56b', w: 1.8 },
+  ];
+
+  function draw() {
+    const f = fitCanvas(cv); if (!f) return;
+    const { g, w, h } = f;
+    const px = lx => PAD.l + (lx - X0) / (X1 - X0) * (w - PAD.l - PAD.r);
+    const py = ly => h - PAD.b - (ly - Y0) / (Y1 - Y0) * (h - PAD.t - PAD.b);
+
+    // grid
+    g.strokeStyle = 'rgba(255,255,255,.07)'; g.lineWidth = 1;
+    g.fillStyle = '#8f9aa5'; g.font = '11px ui-monospace, monospace'; g.textAlign = 'center';
+    for (let e = X0; e <= X1; e += 1) {
+      g.beginPath(); g.moveTo(px(e), PAD.t); g.lineTo(px(e), h - PAD.b); g.stroke();
+      if (e % 2 === 1) g.fillText('10' + String(e).replace(/[0-9]/g, d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]), px(e), h - PAD.b + 16);
+    }
+    g.textAlign = 'right';
+    for (let s = Math.ceil(Y0); s <= Y1; s += 1) {
+      g.beginPath(); g.moveTo(PAD.l, py(s)); g.lineTo(w - PAD.r, py(s)); g.stroke();
+      g.fillText('10' + ('⁻' + String(-s).replace(/[0-9]/g, d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d])), PAD.l - 7, py(s) + 4);
+    }
+    g.textAlign = 'center'; g.fillStyle = '#a8b4c1'; g.font = '12px Inter, sans-serif';
+    g.fillText('Eν  [GeV]', (PAD.l + w - PAD.r) / 2, h - 6);
+    g.save(); g.translate(14, (PAD.t + h - PAD.b) / 2); g.rotate(-Math.PI/2);
+    g.fillText('σνN  [cm²]', 0, 0); g.restore();
+
+    // Gandhi et al., only where declared valid
+    g.setLineDash([7, 5]); g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 1.8;
+    for (const A of [5.53e-36, 2.31e-36]) {
+      g.beginPath();
+      for (let e = 7; e <= 12.001; e += 0.25) {
+        const v = Math.log10(A * Math.pow(10, e * 0.363));
+        const X = px(e), Y = py(v); e === 7 ? g.moveTo(X, Y) : g.lineTo(X, Y);
+      }
+      g.stroke();
+    }
+    g.setLineDash([]);
+
+    // series
+    for (const s of series) {
+      g.strokeStyle = s.c; g.lineWidth = s.w; g.beginPath();
+      for (let i = 0; i < s.E.length; i++) {
+        const X = px(Math.log10(s.E[i])), Y = py(Math.log10(s.y[i]));
+        i ? g.lineTo(X, Y) : g.moveTo(X, Y);
+      }
+      g.stroke();
+    }
+
+    // hover
+    if (hoverE !== null) {
+      const X = px(Math.log10(hoverE));
+      g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 1; g.setLineDash([3,3]);
+      g.beginPath(); g.moveTo(X, PAD.t); g.lineTo(X, h - PAD.b); g.stroke(); g.setLineDash([]);
+      for (const s of series) {
+        const v = interpLog(s.E, s.y, hoverE);
+        g.fillStyle = s.c; g.beginPath(); g.arc(X, py(Math.log10(v)), 3.6, 0, 7); g.fill();
+      }
+    }
+  }
+
+  function readout(E) {
+    const fmt = (v, n=3) => v.toExponential(n).replace('e', '·10^').replace('^+', '^');
+    const cc = interpLog(D.E, D.ccG, E), nc = interpLog(D.E, D.ncG, E);
+    const a  = interpLin(D.Ea, D.aG, E);
+    document.getElementById('s_E').textContent  = E >= 1e4 ? E.toExponential(2) : E.toFixed(0);
+    document.getElementById('s_cc').textContent = cc.toExponential(3) + ' cm²';
+    document.getElementById('s_r').textContent  = (nc / cc).toFixed(4);
+    document.getElementById('s_a').textContent  = a.toFixed(4);
+    document.getElementById('s_t').textContent  = Math.pow(3, a / 2).toFixed(4);
+  }
+
+  cv.addEventListener('mousemove', ev => {
+    const r = cv.getBoundingClientRect();
+    const t = (ev.clientX - r.left - PAD.l) / (r.width - PAD.l - PAD.r);
+    hoverE = Math.pow(10, Math.max(X0, Math.min(X1, lerp(X0, X1, t))));
+    readout(hoverE); draw();
+  });
+  cv.addEventListener('mouseleave', () => { hoverE = null; readout(1e9); draw(); });
+
+  addEventListener('resize', draw);
+  addEventListener('slidechange', () => requestAnimationFrame(draw));
+  readout(1e9); requestAnimationFrame(draw);
+})();
+
+/* ==================== dashboard 2: the geodesic ==================== */
+(() => {
+  const cv = document.getElementById('cvRay'), sl = document.getElementById('bslider');
+  const BCRIT = 3 * Math.sqrt(3) / 2;              // r_s = 1
+  const RMAX = 7.5;
+
+  // exact photon orbit: d2u/dphi2 = -u + 1.5 u^2, integrated with RK4
+  function trace(b) {
+    const f = (u, v) => [v, -u + 1.5 * u * u];
+    let u = 1e-4, v = Math.sqrt(Math.max(0, 1/(b*b) - u*u + u*u*u)), phi = 0;
+    const dphi = 0.0025, pts = [];
+    let captured = false;
+    for (let n = 0; n < 40000; n++) {
+      const r = 1 / u;
+      if (r <= RMAX) pts.push([phi, r]);
+      if (u >= 1) { captured = true; break; }          // crossed the horizon
+      if (u <= 0 && n > 10) break;                      // escaped
+      const k1 = f(u, v);
+      const k2 = f(u + dphi/2*k1[0], v + dphi/2*k1[1]);
+      const k3 = f(u + dphi/2*k2[0], v + dphi/2*k2[1]);
+      const k4 = f(u + dphi*k3[0],   v + dphi*k3[1]);
+      u += dphi/6*(k1[0] + 2*k2[0] + 2*k3[0] + k4[0]);
+      v += dphi/6*(k1[1] + 2*k2[1] + 2*k3[1] + k4[1]);
+      phi += dphi;
+    }
+    return { pts, phi, captured };
+  }
+
+  function rTurn(b) {
+    if (b <= BCRIT) return NaN;
+    let a = -1.5 * Math.sqrt(3) / b;
+    a = Math.max(-1, Math.min(1, a));
+    return (2 * b / Math.sqrt(3)) * Math.cos(Math.acos(a) / 3);
+  }
+
+  function draw() {
+    const f = fitCanvas(cv); if (!f) return;
+    const { g, w, h } = f;
+    const t = Number(sl.value) / 1000;
+    const bOver = 1 + Math.pow(10, lerp(-3.3, 0.7, t));
+    const b = bOver * BCRIT;
+    const { pts, phi, captured } = trace(b);
+    const rt = rTurn(b);
+
+    const cx = w * 0.5, cy = h * 0.5, S = Math.min(w, h) / (2 * RMAX) * 0.92;
+    const P = (ph, r) => [cx + S * r * Math.cos(ph - Math.PI), cy + S * r * Math.sin(ph - Math.PI)];
+
+    // photon sphere
+    g.setLineDash([5, 5]); g.strokeStyle = 'rgba(238,123,51,.85)'; g.lineWidth = 1.4;
+    g.beginPath(); g.arc(cx, cy, S * 1.5, 0, 7); g.stroke(); g.setLineDash([]);
+    // horizon
+    const grd = g.createRadialGradient(cx, cy, 0, cx, cy, S * 1.0);
+    grd.addColorStop(0, '#12060a'); grd.addColorStop(1, '#3a1220');
+    g.fillStyle = grd; g.beginPath(); g.arc(cx, cy, S * 1.0, 0, 7); g.fill();
+    g.strokeStyle = 'rgba(251,113,133,.9)'; g.lineWidth = 1.6;
+    g.beginPath(); g.arc(cx, cy, S * 1.0, 0, 7); g.stroke();
+
+    // ray
+    g.strokeStyle = captured ? '#fb7185' : '#7fb3dc'; g.lineWidth = 2.1;
+    g.beginPath();
+    pts.forEach((p, i) => { const [X, Y] = P(p[0], p[1]); i ? g.lineTo(X, Y) : g.moveTo(X, Y); });
+    g.stroke();
+
+    // turning point marker
+    if (isFinite(rt) && rt <= RMAX) {
+      let best = null;
+      for (const p of pts) if (!best || p[1] < best[1]) best = p;
+      if (best) { const [X, Y] = P(best[0], best[1]);
+        g.fillStyle = '#f6a56b'; g.beginPath(); g.arc(X, Y, 4, 0, 7); g.fill(); }
+    }
+
+    // readouts
+    const set = (id, v) => document.getElementById(id).textContent = v;
+    set('r_b', bOver >= 1.01 ? bOver.toFixed(3) : '1 + ' + (bOver - 1).toExponential(1));
+    if (captured || !isFinite(rt)) {
+      set('r_rt', 'captured'); set('r_bs', '—'); set('r_def', '—'); set('r_ceil', '—');
+    } else {
+      const bs = 1 / Math.sqrt(1 - 1 / rt);
+      set('r_rt', rt.toFixed(5));
+      set('r_bs', bs.toFixed(5));
+      set('r_def', (phi - Math.PI).toFixed(3) + ' rad');
+      set('r_ceil', Math.pow(bs, 0.36).toFixed(5));
+    }
+  }
+  sl.addEventListener('input', draw);
+  addEventListener('resize', draw);
+  addEventListener('slidechange', () => requestAnimationFrame(draw));
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
