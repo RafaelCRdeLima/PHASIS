@@ -775,10 +775,18 @@ function interpLin(xs, ys, x) {
     const dphi = 0.0025, pts = [];
     let captured = false;
     for (let n = 0; n < 40000; n++) {
+      if (u >= 1) { pts.push([phi, 1 / u]); captured = true; break; }  // crossed the horizon
+      if (u <= 0 && n > 10) break;                                     // escaped
+      // u > 0 e obrigatorio ANTES de formar r = 1/u. Com u negativo --
+      // o que acontece na iteracao em que o raio escapa e u cruza zero --
+      // r fica NEGATIVO, e o teste `r <= RMAX` aceita numero negativo.
+      // O ponto entrava na lista com r = -5250 e era desenhado do lado
+      // diametralmente oposto, a 5250 unidades: uma reta atravessando o
+      // painel inteiro. Mesma classe dos bugs de borda do resto do
+      // projeto -- condicao de contorno avaliada antes do guarda que
+      // deveria exclui-la.
       const r = 1 / u;
-      if (r <= RMAX) pts.push([phi, r]);
-      if (u >= 1) { captured = true; break; }          // crossed the horizon
-      if (u <= 0 && n > 10) break;                      // escaped
+      if (r > 0 && r <= RMAX) pts.push([phi, r]);
       const k1 = f(u, v);
       const k2 = f(u + dphi/2*k1[0], v + dphi/2*k1[1]);
       const k3 = f(u + dphi/2*k2[0], v + dphi/2*k2[1]);
